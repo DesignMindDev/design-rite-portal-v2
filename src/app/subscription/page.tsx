@@ -82,14 +82,13 @@ export default function SubscriptionPage() {
         throw new Error('Failed to create checkout session')
       }
 
-      const { sessionId } = await response.json()
+      const { url } = await response.json()
 
-      // Redirect to Stripe Checkout
-      const stripe = await stripePromise
-      const { error } = await stripe!.redirectToCheckout({ sessionId })
-
-      if (error) {
-        throw new Error(error.message)
+      // Redirect to Stripe Checkout using URL
+      if (url) {
+        window.location.href = url
+      } else {
+        throw new Error('No checkout URL returned')
       }
     } catch (error: any) {
       console.error('Checkout error:', error)
