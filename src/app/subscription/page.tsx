@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useAuth } from '@/hooks/useAuth'
 import { useSubscription } from '@/hooks/useSubscription'
@@ -21,7 +21,7 @@ import { loadStripe } from '@stripe/stripe-js'
 
 const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!)
 
-export default function SubscriptionPage() {
+function SubscriptionContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const { user, isEmployee } = useAuth()
@@ -406,5 +406,19 @@ export default function SubscriptionPage() {
         </div>
       </div>
     </ProtectedLayout>
+  )
+}
+
+export default function SubscriptionPage() {
+  return (
+    <Suspense fallback={
+      <ProtectedLayout>
+        <div className="flex items-center justify-center min-h-screen">
+          <Loader2 className="w-12 h-12 animate-spin text-primary" />
+        </div>
+      </ProtectedLayout>
+    }>
+      <SubscriptionContent />
+    </Suspense>
   )
 }
