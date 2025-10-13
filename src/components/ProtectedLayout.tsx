@@ -1,10 +1,13 @@
 'use client'
 
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/hooks/useAuth'
+import { useInactivityTimeout } from '@/hooks/useInactivityTimeout'
 import Sidebar from './Sidebar'
+import InactivityWarningModal from './InactivityWarningModal'
 import { Loader2 } from 'lucide-react'
+import { toast } from 'sonner'
 
 interface ProtectedLayoutProps {
   children: React.ReactNode
@@ -12,7 +15,42 @@ interface ProtectedLayoutProps {
 
 export default function ProtectedLayout({ children }: ProtectedLayoutProps) {
   const router = useRouter()
-  const { user, loading } = useAuth()
+  const { user, loading, signOut } = useAuth()
+  const [showInactivityWarning, setShowInactivityWarning] = useState(false)
+
+  // Handle auto logout
+  const handleAutoLogout = async () => {
+    console.log('[ProtectedLayout] Auto logout due to inactivity')
+    toast.info('Signed out due to inactivity')
+    await signOut()
+    router.push('/auth?reason=inactivity')
+  }
+
+  // Setup inactivity timeout
+  const { resetTimer } = useInactivityTimeout({
+    warningTime: 30 * 60 * 1000, // 30 minutes
+    logoutTime: 60 * 60 * 1000,  // 60 minutes
+    onWarning: () => {
+      console.log('[ProtectedLayout] Showing inactivity warning')
+      setShowInactivityWarning(true)
+    },
+    onLogout: handleAutoLogout
+  })
+
+  // Handle "I'm still here" button
+  const handleStillHere = () => {
+    console.log('[ProtectedLayout] User confirmed still active')
+    setShowInactivityWarning(false)
+    resetTimer()
+    toast.success('Session extended')
+  }
+
+  // Handle manual logout from warning modal
+  const handleManualLogout = async () => {
+    console.log('[ProtectedLayout] Manual logout from warning modal')
+    await signOut()
+    router.push('/auth')
+  }
 
   useEffect(() => {
     if (!loading && !user) {
@@ -37,11 +75,21 @@ export default function ProtectedLayout({ children }: ProtectedLayoutProps) {
   }
 
   return (
-    <div className="flex min-h-screen bg-gray-50">
-      <Sidebar />
-      <main className="flex-1 overflow-x-hidden">
-        {children}
-      </main>
-    </div>
+    <>
+      <div className="flex min-h-screen bg-gray-50">
+        <Sidebar />
+        <main className="flex-1 overflow-x-hidden">
+          {children}
+        </main>
+      </div>
+
+      {/* Inactivity warning modal */}
+      <InactivityWarningModal
+        isOpen={showInactivityWarning}
+        onStillHere={handleStillHere}
+        onLogout={handleManualLogout}
+        timeUntilLogout={30 * 60} // 30 minutes in seconds
+      />
+    </>
   )
 }
