@@ -1,0 +1,2 @@
+ALTER TABLE public.subscriptions ADD COLUMN IF NOT EXISTS is_trial BOOLEAN DEFAULT FALSE;
+ALTER TABLE public.subscriptions ADD COLUMN IF NOT EXISTS max_documents INTEGER DEFAULT 2;

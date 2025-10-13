@@ -49,12 +49,11 @@ export default function WelcomePage() {
     }
   }
 
-  // Handle session transfer to main platform
-  const handleQuickEstimate = async () => {
-    toast.info('Launching Quick Estimate...', { duration: 1500 })
+  // Handle session transfer to main platform workspace
+  const handleWorkspace = async () => {
+    toast.info('Launching Workspace...', { duration: 1500 })
     const mainPlatformUrl = process.env.NEXT_PUBLIC_MAIN_PLATFORM_URL || 'http://localhost:3000'
-    // For now, just redirect without session transfer (will add later)
-    window.open(`${mainPlatformUrl}/estimate-options`, '_blank')
+    window.location.href = `${mainPlatformUrl}/workspace`
   }
 
   if (loading) {
@@ -74,11 +73,11 @@ export default function WelcomePage() {
 
   const actionCards = [
     {
-      title: 'Quick Estimate',
-      description: 'Generate a professional security estimate in minutes',
+      title: 'Go to Workspace',
+      description: 'Access AI Assistant, AI Discovery, and Quick Estimate tools',
       icon: Sparkles,
       color: 'from-blue-500 to-blue-600',
-      action: handleQuickEstimate,
+      action: handleWorkspace,
       badge: 'Popular'
     },
     {

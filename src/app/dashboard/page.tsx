@@ -31,7 +31,7 @@ export default function DashboardPage() {
       description: 'Access AI-powered security design tools',
       subtitle: 'Launch the main Design-Rite platform to create security estimates, AI assessments, and professional proposals.',
       icon: Sparkles,
-      href: `${mainPlatformUrl}/dashboard`,
+      href: `${mainPlatformUrl}/workspace`,
       external: true,
       color: 'from-blue-500 to-blue-600',
       badge: 'Launch Platform'
