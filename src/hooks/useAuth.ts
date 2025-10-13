@@ -32,16 +32,22 @@ export function useAuth() {
   useEffect(() => {
     // Get initial session
     supabase.auth.getSession().then(async ({ data: { session } }) => {
+      console.log('[useAuth] Initial session check:', session ? 'Session found' : 'No session')
       setUser(session?.user ?? null)
       if (session?.user) {
         await loadUserData(session.user.id)
       }
       setLoading(false)
+      console.log('[useAuth] Initial loading complete')
+    }).catch((error) => {
+      console.error('[useAuth] Error getting initial session:', error)
+      setLoading(false) // Always set loading=false even on error
     })
 
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
+        console.log('[useAuth] Auth state change:', event, session ? 'Session present' : 'No session')
         setUser(session?.user ?? null)
         if (session?.user) {
           await loadUserData(session.user.id)
@@ -50,6 +56,7 @@ export function useAuth() {
           setUserRole(null)
         }
         setLoading(false)
+        console.log('[useAuth] Auth state change complete')
       }
     )
 
@@ -58,32 +65,46 @@ export function useAuth() {
 
   async function loadUserData(userId: string) {
     try {
-      // Load profile
-      const { data: profileData } = await supabase
+      console.log('[useAuth] Loading user data for:', userId)
+
+      // Load profile with timeout
+      const { data: profileData, error: profileError } = await supabase
         .from('profiles')
         .select('*')
         .eq('id', userId)
         .single()
 
-      if (profileData) {
+      if (profileError) {
+        console.warn('[useAuth] Error loading profile:', profileError)
+      } else if (profileData) {
+        console.log('[useAuth] Profile loaded successfully')
         setProfile(profileData)
       }
 
-      // Load user role
-      const { data: roleData } = await supabase
+      // Load user role with timeout
+      const { data: roleData, error: roleError } = await supabase
         .from('user_roles')
         .select('role, domain_override')
         .eq('user_id', userId)
         .single()
 
-      if (roleData) {
+      if (roleError) {
+        console.warn('[useAuth] Error loading role (might not exist):', roleError)
+        // Default to 'user' role if no role found
+        setUserRole({ role: 'user', domain_override: false })
+      } else if (roleData) {
+        console.log('[useAuth] Role loaded successfully:', roleData.role)
         setUserRole(roleData)
       } else {
         // Default to 'user' role if no role found
         setUserRole({ role: 'user', domain_override: false })
       }
+
+      console.log('[useAuth] User data loading complete')
     } catch (error) {
-      console.error('Error loading user data:', error)
+      console.error('[useAuth] Error loading user data:', error)
+      // Set defaults so the app can still function
+      setUserRole({ role: 'user', domain_override: false })
     }
   }
 

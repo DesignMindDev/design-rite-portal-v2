@@ -25,6 +25,7 @@ export default function SessionRestorer() {
       // Check if there's an auth hash in the URL
       const hash = window.location.hash
       if (!hash || !hash.includes('auth=')) {
+        console.log('[SessionRestorer] No auth hash in URL, skipping restoration')
         return
       }
 
