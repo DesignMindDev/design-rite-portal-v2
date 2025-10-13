@@ -29,8 +29,35 @@ export default function SessionRestorer() {
       }
 
       try {
-        console.log('[SessionRestorer] Found auth hash, attempting to restore session...')
+        console.log('[SessionRestorer] Found auth hash in URL')
         setIsRestoring(true)
+
+        // Import supabase client first
+        const { supabase } = await import('@/lib/supabase')
+
+        // IMPORTANT: Check if we already have an active session
+        // This prevents trying to restore tokens that are already in use
+        const { data: { session: existingSession } } = await supabase.auth.getSession()
+
+        if (existingSession) {
+          console.log('[SessionRestorer] Active session already exists, no restoration needed', {
+            userId: existingSession.user.id,
+            email: existingSession.user.email
+          })
+
+          // Just clean up the hash and we're done
+          window.history.replaceState(
+            null,
+            '',
+            window.location.pathname + window.location.search
+          )
+
+          console.log('[SessionRestorer] Refreshing router with existing session...')
+          router.refresh()
+          return
+        }
+
+        console.log('[SessionRestorer] No existing session, attempting to restore from hash...')
 
         // Extract and decode the auth data from the hash
         const authMatch = hash.match(/auth=([^&]+)/)
@@ -44,9 +71,6 @@ export default function SessionRestorer() {
         const authData = JSON.parse(authDataString)
 
         console.log('[SessionRestorer] Decoded auth data, setting session...')
-
-        // Import supabase client and set the session
-        const { supabase } = await import('@/lib/supabase')
 
         const { data, error } = await supabase.auth.setSession({
           access_token: authData.access_token,
