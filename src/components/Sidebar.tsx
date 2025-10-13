@@ -61,7 +61,10 @@ export default function Sidebar() {
           label: 'Admin Dashboard',
           icon: Shield,
           badge: 'Admin',
-          action: () => router.push('/transfer-session')
+          action: () => {
+            console.log('[Sidebar] Admin Dashboard button clicked - navigating to /transfer-session')
+            router.push('/transfer-session')
+          }
         }
       ]
     : []
