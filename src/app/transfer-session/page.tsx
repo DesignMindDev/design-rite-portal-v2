@@ -39,10 +39,10 @@ export default function TransferSessionPage() {
       const authDataString = encodeURIComponent(JSON.stringify(authData))
 
       // Determine target URL based on environment
-      const mainPlatformUrl = process.env.NEXT_PUBLIC_MAIN_PLATFORM_URL || 'http://localhost:3000'
+      const mainPlatformUrl = process.env.NEXT_PUBLIC_MAIN_PLATFORM_URL || 'https://design-rite.com'
 
-      // Transfer to main platform admin
-      window.location.href = `${mainPlatformUrl}/admin?auth=${authDataString}`
+      // Transfer to main platform admin using URL hash for security
+      window.location.href = `${mainPlatformUrl}/admin#auth=${authDataString}`
     } catch (err: any) {
       console.error('Session transfer error:', err)
       setError(err.message || 'Failed to transfer session')
