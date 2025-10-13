@@ -23,7 +23,7 @@ import Link from 'next/link'
 export default function DashboardPage() {
   const { user, profile, userRole, isEmployee } = useAuth()
 
-  const mainPlatformUrl = process.env.NEXT_PUBLIC_MAIN_PLATFORM_URL || 'http://localhost:3000'
+  const mainPlatformUrl = process.env.NEXT_PUBLIC_MAIN_PLATFORM_URL || 'https://design-rite.com'
 
   const features = [
     {
