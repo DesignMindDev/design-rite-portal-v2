@@ -28,6 +28,10 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
 export const authHelpers = {
   // Sign up with email/password
   async signUp(email: string, password: string, fullName: string, company: string) {
+    // Supabase trigger (handle_new_user) will automatically create:
+    // - Profile in profiles table
+    // - Default user role in user_roles table
+    // - Free tier subscription in subscriptions table
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
@@ -38,43 +42,6 @@ export const authHelpers = {
         }
       }
     })
-
-    // Create profile entry
-    if (data.user && !error) {
-      const { error: profileError } = await supabase
-        .from('profiles')
-        .insert({
-          id: data.user.id,
-          email,
-          full_name: fullName,
-          company
-        })
-
-      if (profileError) {
-        console.error('Profile creation error:', profileError)
-      }
-
-      // Create 14-day trial subscription
-      const trialEnd = new Date()
-      trialEnd.setDate(trialEnd.getDate() + 14) // 14 days from now
-
-      const { error: subError } = await supabase
-        .from('subscriptions')
-        .insert({
-          user_id: data.user.id,
-          tier: 'starter',
-          status: 'trialing',
-          max_documents: 10, // Full starter access during trial
-          source: 'trial',
-          is_trial: true,
-          trial_start: new Date().toISOString(),
-          trial_end: trialEnd.toISOString()
-        })
-
-      if (subError) {
-        console.error('Subscription creation error:', subError)
-      }
-    }
 
     return { data, error }
   },
