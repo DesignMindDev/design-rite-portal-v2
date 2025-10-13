@@ -19,11 +19,58 @@ import {
   ExternalLink
 } from 'lucide-react'
 import Link from 'next/link'
+import { toast } from 'sonner'
 
 export default function DashboardPage() {
   const { user, profile, userRole, isEmployee } = useAuth()
 
-  const mainPlatformUrl = process.env.NEXT_PUBLIC_MAIN_PLATFORM_URL || 'https://design-rite.com'
+  // Handle workspace redirect with session transfer
+  const handleWorkspace = async () => {
+    try {
+      console.log('[Dashboard] Starting workspace redirect...')
+      toast.info('Launching Workspace...', { duration: 1500 })
+
+      if (!user) {
+        console.error('[Dashboard] No user session found')
+        toast.error('Session not found. Please sign in again.')
+        return
+      }
+
+      // Get session using existing supabase client
+      const { authHelpers } = await import('@/lib/supabase')
+      const session = await authHelpers.getCurrentSession()
+
+      if (!session) {
+        console.error('[Dashboard] No session found')
+        toast.error('Session not found. Please sign in again.')
+        return
+      }
+
+      console.log('[Dashboard] Session found, encoding tokens...')
+
+      // Encode session tokens in URL hash
+      const authData = {
+        access_token: session.access_token,
+        refresh_token: session.refresh_token
+      }
+      const encodedAuth = encodeURIComponent(JSON.stringify(authData))
+
+      // Redirect to main platform workspace
+      const mainPlatformUrl = process.env.NODE_ENV === 'development'
+        ? 'http://localhost:3000'
+        : 'https://design-rite.com'
+
+      const workspaceUrl = `${mainPlatformUrl}/workspace#auth=${encodedAuth}`
+
+      console.log('[Dashboard] Redirecting to:', workspaceUrl)
+
+      // Use window.location.href for full redirect
+      window.location.href = workspaceUrl
+    } catch (error) {
+      console.error('[Dashboard] Error transferring session:', error)
+      toast.error('Failed to launch workspace. Please try again.')
+    }
+  }
 
   const features = [
     {
@@ -31,8 +78,7 @@ export default function DashboardPage() {
       description: 'Access AI-powered security design tools',
       subtitle: 'Launch the main Design-Rite platform to create security estimates, AI assessments, and professional proposals.',
       icon: Sparkles,
-      href: `${mainPlatformUrl}/workspace`,
-      external: true,
+      action: handleWorkspace,
       color: 'from-blue-500 to-blue-600',
       badge: 'Launch Platform'
     },
@@ -175,16 +221,20 @@ export default function DashboardPage() {
           <h2 className="text-2xl font-bold text-gray-900 mb-6">Platform Features</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {features.map((feature, index) => {
-              const CardWrapper = feature.external ? 'a' : Link
-              const linkProps = feature.external
+              // Check if feature has an action (button) or href (link)
+              const isButton = 'action' in feature
+              const CardWrapper = isButton ? 'button' : (feature.external ? 'a' : Link)
+              const cardProps = isButton
+                ? { onClick: feature.action, type: 'button' as const }
+                : feature.external
                 ? { href: feature.href, target: '_blank', rel: 'noopener noreferrer' }
                 : { href: feature.href }
 
               return (
                 <CardWrapper
                   key={index}
-                  {...linkProps}
-                  className="group bg-white rounded-xl p-6 border border-gray-200 shadow-sm hover:shadow-xl hover:border-primary/50 transition-all duration-300 transform hover:-translate-y-1"
+                  {...cardProps}
+                  className="group bg-white rounded-xl p-6 border border-gray-200 shadow-sm hover:shadow-xl hover:border-primary/50 transition-all duration-300 transform hover:-translate-y-1 text-left"
                 >
                   <div className="flex items-start justify-between mb-4">
                     <div className={`w-14 h-14 rounded-lg bg-gradient-to-br ${feature.color} flex items-center justify-center transform group-hover:scale-110 transition-transform`}>
@@ -207,7 +257,7 @@ export default function DashboardPage() {
                     {feature.subtitle}
                   </p>
                   <div className="flex items-center text-primary font-semibold text-sm group-hover:gap-2 transition-all">
-                    <span>{feature.external ? 'Launch' : 'Open'}</span>
+                    <span>{isButton || feature.external ? 'Launch' : 'Open'}</span>
                     <span className="transform group-hover:translate-x-1 transition-transform">→</span>
                   </div>
                 </CardWrapper>

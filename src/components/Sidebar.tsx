@@ -19,7 +19,8 @@ import {
   ChevronLeft,
   ChevronRight,
   Menu,
-  X
+  X,
+  ArrowLeft
 } from 'lucide-react'
 import { toast } from 'sonner'
 
@@ -118,6 +119,19 @@ export default function Sidebar() {
 
       {/* Navigation Items */}
       <nav className="flex-1 overflow-y-auto p-4 space-y-1">
+        {/* Back to Welcome Button */}
+        <Link
+          href="/welcome"
+          className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-all bg-gradient-to-r from-purple-50 to-blue-50 border border-purple-200 text-purple-700 hover:from-purple-100 hover:to-blue-100 hover:border-purple-300 mb-3 ${
+            collapsed ? 'justify-center px-2' : ''
+          }`}
+          title={collapsed ? 'Back to Welcome' : undefined}
+          onClick={() => setMobileOpen(false)}
+        >
+          <ArrowLeft className="w-5 h-5 flex-shrink-0" />
+          {!collapsed && <span className="flex-1 font-medium text-sm">Back to Welcome</span>}
+        </Link>
+
         {navItems.map((item) => {
           const isActive = pathname === item.path
           return (

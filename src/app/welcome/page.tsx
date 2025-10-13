@@ -52,22 +52,30 @@ export default function WelcomePage() {
   // Handle session transfer to main platform workspace
   const handleWorkspace = async () => {
     try {
+      console.log('[Portal] Starting workspace redirect...')
       toast.info('Launching Workspace...', { duration: 1500 })
 
-      // Get current session from Supabase
-      const { createClient } = await import('@supabase/supabase-js')
-      const supabase = createClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-      )
-
-      const { data: { session } } = await supabase.auth.getSession()
-
-      if (!session) {
+      // Use existing auth hook session instead of creating new client
+      if (!user) {
+        console.error('[Portal] No user session found')
         toast.error('Session not found. Please sign in again.')
         router.push('/auth')
         return
       }
+
+      // Get session using existing supabase client from lib/supabase.ts
+      // This fixes the "Multiple GoTrueClient instances" warning
+      const { authHelpers } = await import('@/lib/supabase')
+      const session = await authHelpers.getCurrentSession()
+
+      if (!session) {
+        console.error('[Portal] No session found')
+        toast.error('Session not found. Please sign in again.')
+        router.push('/auth')
+        return
+      }
+
+      console.log('[Portal] Session found, encoding tokens...')
 
       // Encode session tokens in URL hash
       const authData = {
@@ -76,10 +84,19 @@ export default function WelcomePage() {
       }
       const encodedAuth = encodeURIComponent(JSON.stringify(authData))
 
-      const mainPlatformUrl = process.env.NEXT_PUBLIC_MAIN_PLATFORM_URL || 'http://localhost:3000'
-      window.location.href = `${mainPlatformUrl}/workspace#auth=${encodedAuth}`
+      // Redirect to main platform workspace
+      const mainPlatformUrl = process.env.NODE_ENV === 'development'
+        ? 'http://localhost:3000'
+        : 'https://design-rite.com'
+
+      const workspaceUrl = `${mainPlatformUrl}/workspace#auth=${encodedAuth}`
+
+      console.log('[Portal] Redirecting to:', workspaceUrl)
+
+      // Use window.location.href for full redirect
+      window.location.href = workspaceUrl
     } catch (error) {
-      console.error('Error transferring session:', error)
+      console.error('[Portal] Error transferring session:', error)
       toast.error('Failed to launch workspace. Please try again.')
     }
   }
@@ -97,6 +114,14 @@ export default function WelcomePage() {
 
   if (!user) {
     return null
+  }
+
+  // Handle test page redirect
+  const handleTestPage = () => {
+    const testPageUrl = process.env.NODE_ENV === 'development'
+      ? 'http://localhost:3000/authtest'
+      : 'https://design-rite.com/authtest'
+    window.location.href = testPageUrl
   }
 
   const actionCards = [
@@ -122,6 +147,14 @@ export default function WelcomePage() {
       color: 'from-green-500 to-green-600',
       action: () => router.push('/dashboard?tab=subscription'),
       badge: 'Save 20%'
+    },
+    {
+      title: 'Back to Test Page',
+      description: 'Return to the auth test page on the main platform',
+      icon: ExternalLink,
+      color: 'from-orange-500 to-orange-600',
+      action: handleTestPage,
+      badge: 'Testing'
     }
   ]
 
@@ -200,7 +233,7 @@ export default function WelcomePage() {
         </div>
 
         {/* Action Cards */}
-        <div className="grid md:grid-cols-3 gap-6 mb-12">
+        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
           {actionCards.map((card, index) => (
             <button
               key={index}
