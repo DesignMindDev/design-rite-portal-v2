@@ -51,9 +51,37 @@ export default function WelcomePage() {
 
   // Handle session transfer to main platform workspace
   const handleWorkspace = async () => {
-    toast.info('Launching Workspace...', { duration: 1500 })
-    const mainPlatformUrl = process.env.NEXT_PUBLIC_MAIN_PLATFORM_URL || 'http://localhost:3000'
-    window.location.href = `${mainPlatformUrl}/workspace`
+    try {
+      toast.info('Launching Workspace...', { duration: 1500 })
+
+      // Get current session from Supabase
+      const { createClient } = await import('@supabase/supabase-js')
+      const supabase = createClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+      )
+
+      const { data: { session } } = await supabase.auth.getSession()
+
+      if (!session) {
+        toast.error('Session not found. Please sign in again.')
+        router.push('/auth')
+        return
+      }
+
+      // Encode session tokens in URL hash
+      const authData = {
+        access_token: session.access_token,
+        refresh_token: session.refresh_token
+      }
+      const encodedAuth = encodeURIComponent(JSON.stringify(authData))
+
+      const mainPlatformUrl = process.env.NEXT_PUBLIC_MAIN_PLATFORM_URL || 'http://localhost:3000'
+      window.location.href = `${mainPlatformUrl}/workspace#auth=${encodedAuth}`
+    } catch (error) {
+      console.error('Error transferring session:', error)
+      toast.error('Failed to launch workspace. Please try again.')
+    }
   }
 
   if (loading) {
