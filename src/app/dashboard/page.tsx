@@ -223,12 +223,10 @@ export default function DashboardPage() {
             {features.map((feature, index) => {
               // Check if feature has an action (button) or href (link)
               const isButton = 'action' in feature
-              const CardWrapper = isButton ? 'button' : (feature.external ? 'a' : Link)
+              const CardWrapper = isButton ? 'button' : Link
               const cardProps = isButton
                 ? { onClick: feature.action, type: 'button' as const }
-                : feature.external
-                ? { href: feature.href, target: '_blank', rel: 'noopener noreferrer' }
-                : { href: feature.href }
+                : { href: feature.href || '#' }
 
               return (
                 <CardWrapper
@@ -241,8 +239,7 @@ export default function DashboardPage() {
                       <feature.icon className="w-7 h-7 text-white" />
                     </div>
                     {feature.badge && (
-                      <span className="px-3 py-1 bg-blue-100 text-blue-700 text-xs font-semibold rounded-full flex items-center gap-1">
-                        {feature.external && <ExternalLink className="w-3 h-3" />}
+                      <span className="px-3 py-1 bg-blue-100 text-blue-700 text-xs font-semibold rounded-full">
                         {feature.badge}
                       </span>
                     )}
@@ -257,7 +254,7 @@ export default function DashboardPage() {
                     {feature.subtitle}
                   </p>
                   <div className="flex items-center text-primary font-semibold text-sm group-hover:gap-2 transition-all">
-                    <span>{isButton || feature.external ? 'Launch' : 'Open'}</span>
+                    <span>{isButton ? 'Launch' : 'Open'}</span>
                     <span className="transform group-hover:translate-x-1 transition-transform">→</span>
                   </div>
                 </CardWrapper>
