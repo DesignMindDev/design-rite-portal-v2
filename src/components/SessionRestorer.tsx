@@ -59,7 +59,10 @@ export default function SessionRestorer() {
         }
 
         if (data.session) {
-          console.log('[SessionRestorer] Session restored successfully!')
+          console.log('[SessionRestorer] Session restored successfully!', {
+            userId: data.session.user.id,
+            email: data.session.user.email
+          })
 
           // Clean up the hash from the URL
           window.history.replaceState(
@@ -68,9 +71,14 @@ export default function SessionRestorer() {
             window.location.pathname + window.location.search
           )
 
+          // Give the auth state change listener a moment to process
+          await new Promise(resolve => setTimeout(resolve, 100))
+
           // Force a refresh to update auth state
-          // Use router.refresh() instead of reload for better UX
+          console.log('[SessionRestorer] Refreshing router...')
           router.refresh()
+        } else {
+          console.warn('[SessionRestorer] Session was set but data.session is null')
         }
       } catch (error) {
         console.error('[SessionRestorer] Failed to restore session:', error)
