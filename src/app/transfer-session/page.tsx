@@ -11,23 +11,32 @@ export default function TransferSessionPage() {
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
+    console.log('[TransferSession] useEffect triggered', { loading, user: !!user })
     if (!loading && user) {
+      console.log('[TransferSession] Calling handleTransfer()')
       handleTransfer()
+    } else if (!loading && !user) {
+      console.log('[TransferSession] No user found - cannot transfer session')
     }
   }, [user, loading])
 
   async function handleTransfer() {
+    console.log('[TransferSession] handleTransfer() started')
     setTransferring(true)
     setError(null)
 
     try {
+      console.log('[TransferSession] Getting current session...')
       const session = await authHelpers.getCurrentSession()
 
       if (!session) {
+        console.error('[TransferSession] No session found')
         setError('No active session found. Please sign in again.')
         setTransferring(false)
         return
       }
+
+      console.log('[TransferSession] Session found, encoding tokens...')
 
       // Encode session data
       const authData = {
@@ -40,11 +49,14 @@ export default function TransferSessionPage() {
 
       // Determine target URL based on environment
       const mainPlatformUrl = process.env.NEXT_PUBLIC_MAIN_PLATFORM_URL || 'https://design-rite.com'
+      const targetUrl = `${mainPlatformUrl}/admin#auth=${authDataString}`
+
+      console.log('[TransferSession] Redirecting to:', targetUrl)
 
       // Transfer to main platform admin using URL hash for security
-      window.location.href = `${mainPlatformUrl}/admin#auth=${authDataString}`
+      window.location.href = targetUrl
     } catch (err: any) {
-      console.error('Session transfer error:', err)
+      console.error('[TransferSession] Error:', err)
       setError(err.message || 'Failed to transfer session')
       setTransferring(false)
     }
