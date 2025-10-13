@@ -223,17 +223,9 @@ export default function DashboardPage() {
             {features.map((feature, index) => {
               // Check if feature has an action (button) or href (link)
               const isButton = 'action' in feature
-              const CardWrapper = isButton ? 'button' : Link
-              const cardProps = isButton
-                ? { onClick: feature.action, type: 'button' as const }
-                : { href: feature.href || '#' }
 
-              return (
-                <CardWrapper
-                  key={index}
-                  {...cardProps}
-                  className="group bg-white rounded-xl p-6 border border-gray-200 shadow-sm hover:shadow-xl hover:border-primary/50 transition-all duration-300 transform hover:-translate-y-1 text-left"
-                >
+              const cardContent = (
+                <>
                   <div className="flex items-start justify-between mb-4">
                     <div className={`w-14 h-14 rounded-lg bg-gradient-to-br ${feature.color} flex items-center justify-center transform group-hover:scale-110 transition-transform`}>
                       <feature.icon className="w-7 h-7 text-white" />
@@ -257,7 +249,26 @@ export default function DashboardPage() {
                     <span>{isButton ? 'Launch' : 'Open'}</span>
                     <span className="transform group-hover:translate-x-1 transition-transform">→</span>
                   </div>
-                </CardWrapper>
+                </>
+              )
+
+              return isButton ? (
+                <button
+                  key={index}
+                  onClick={feature.action}
+                  type="button"
+                  className="group bg-white rounded-xl p-6 border border-gray-200 shadow-sm hover:shadow-xl hover:border-primary/50 transition-all duration-300 transform hover:-translate-y-1 text-left"
+                >
+                  {cardContent}
+                </button>
+              ) : (
+                <Link
+                  key={index}
+                  href={feature.href || '#'}
+                  className="group bg-white rounded-xl p-6 border border-gray-200 shadow-sm hover:shadow-xl hover:border-primary/50 transition-all duration-300 transform hover:-translate-y-1 text-left"
+                >
+                  {cardContent}
+                </Link>
               )
             })}
           </div>
