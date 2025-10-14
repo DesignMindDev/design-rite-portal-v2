@@ -9,7 +9,9 @@ const supabaseServiceKey = process.env.SUPABASE_SERVICE_KEY || process.env.NEXT_
 
 /**
  * Create Employee/User API Route
- * Allows admins to create new users with any role
+ * Allows ONLY super_admins to create new users with any role
+ *
+ * Security: Verifies requester is super_admin before allowing user creation
  */
 export async function POST(request: NextRequest) {
   try {
@@ -20,6 +22,49 @@ export async function POST(request: NextRequest) {
         persistSession: false
       }
     });
+
+    // SECURITY: Verify the requester is authenticated and is a super_admin
+    const authHeader = request.headers.get('authorization');
+    if (!authHeader) {
+      console.error('[CreateEmployee] No authorization header');
+      return NextResponse.json(
+        { error: 'Unauthorized - No authentication token provided' },
+        { status: 401 }
+      );
+    }
+
+    // Extract the token and get the requesting user
+    const token = authHeader.replace('Bearer ', '');
+    const { data: { user: requestingUser }, error: authError } = await supabase.auth.getUser(token);
+
+    if (authError || !requestingUser) {
+      console.error('[CreateEmployee] Invalid token:', authError);
+      return NextResponse.json(
+        { error: 'Unauthorized - Invalid authentication token' },
+        { status: 401 }
+      );
+    }
+
+    // Check if the requesting user is a super_admin
+    const { data: requesterRole, error: roleError } = await supabase
+      .from('user_roles')
+      .select('role')
+      .eq('user_id', requestingUser.id)
+      .single();
+
+    if (roleError || requesterRole?.role !== 'super_admin') {
+      console.error('[CreateEmployee] Insufficient permissions:', {
+        userId: requestingUser.id,
+        role: requesterRole?.role,
+        error: roleError
+      });
+      return NextResponse.json(
+        { error: 'Forbidden - Only super_admins can create users' },
+        { status: 403 }
+      );
+    }
+
+    console.log('[CreateEmployee] Request authorized by super_admin:', requestingUser.id);
 
     // Get request body
     const body = await request.json();
