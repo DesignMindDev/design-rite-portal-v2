@@ -136,7 +136,9 @@ async function getSystemHealth(startDate: Date) {
 
   const totalCalls = debugLogs?.length || 0;
   const errors = debugLogs?.filter(log => log.error_message)?.length || 0;
-  const avgExecutionTime = debugLogs?.reduce((sum, log) => sum + (log.execution_time_ms || 0), 0) / (totalCalls || 1);
+  const avgExecutionTime = debugLogs && debugLogs.length > 0
+    ? debugLogs.reduce((sum, log) => sum + (log.execution_time_ms || 0), 0) / debugLogs.length
+    : 0;
 
   // Get Spatial Studio upload success rate
   const { data: projects } = await supabase
@@ -187,12 +189,16 @@ async function getUserEngagement(startDate: Date) {
 
   const uniqueUsers = new Set(sessions.data?.map(s => s.user_hash) || []).size;
 
-  const avgSessionDuration = sessions.data?.reduce((sum, s) => {
-    const duration = new Date(s.last_activity).getTime() - new Date(s.created_at).getTime();
-    return sum + duration;
-  }, 0) / (sessions.data?.length || 1) / 1000; // Convert to seconds
+  const avgSessionDuration = sessions.data && sessions.data.length > 0
+    ? sessions.data.reduce((sum, s) => {
+        const duration = new Date(s.last_activity).getTime() - new Date(s.created_at).getTime();
+        return sum + duration;
+      }, 0) / sessions.data.length / 1000  // Convert to seconds
+    : 0;
 
-  const avgMessagesPerSession = sessions.data?.reduce((sum, s) => sum + s.message_count, 0) / (sessions.data?.length || 1);
+  const avgMessagesPerSession = sessions.data && sessions.data.length > 0
+    ? sessions.data.reduce((sum, s) => sum + s.message_count, 0) / sessions.data.length
+    : 0;
 
   // Tool usage rate
   const leadsData = leads.data || [];
@@ -266,7 +272,9 @@ async function getAIPerformance(startDate: Date) {
   // Calculate average execution times
   Object.keys(operationStats).forEach(op => {
     const logs = debugLogs?.filter(l => l.operation === op) || [];
-    const avgTime = logs.reduce((sum, l) => sum + (l.execution_time_ms || 0), 0) / logs.length;
+    const avgTime = logs.length > 0
+      ? logs.reduce((sum, l) => sum + (l.execution_time_ms || 0), 0) / logs.length
+      : 0;
     operationStats[op].avgTime = Math.round(avgTime);
   });
 
