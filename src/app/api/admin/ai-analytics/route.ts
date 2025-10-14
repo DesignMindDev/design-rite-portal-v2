@@ -1,6 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs'
-import { cookies } from 'next/headers'
+import { createClient } from '@supabase/supabase-js'
+
+// Force dynamic rendering for this API route
+export const dynamic = 'force-dynamic'
+
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
+const supabaseServiceKey = process.env.SUPABASE_SERVICE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 
 /**
  * AI Analytics API Route
@@ -9,7 +14,7 @@ import { cookies } from 'next/headers'
 
 export async function GET(request: NextRequest) {
   try {
-    const supabase = createRouteHandlerClient({ cookies })
+    const supabase = createClient(supabaseUrl, supabaseServiceKey)
     
     // Check authentication
     const { data: { user }, error: authError } = await supabase.auth.getUser()
@@ -80,7 +85,7 @@ export async function GET(request: NextRequest) {
  * Session-based Analytics
  */
 async function getSessionAnalytics(startDate: Date) {
-  const supabase = createRouteHandlerClient({ cookies })
+  const supabase = createClient(supabaseUrl, supabaseServiceKey)
   
   const { data: sessions } = await supabase
     .from('ai_sessions')
@@ -121,7 +126,7 @@ async function getSessionAnalytics(startDate: Date) {
  * Provider Performance Analysis
  */
 async function getProviderPerformance(startDate: Date) {
-  const supabase = createRouteHandlerClient({ cookies })
+  const supabase = createClient(supabaseUrl, supabaseServiceKey)
   
   const { data: sessions } = await supabase
     .from('ai_sessions')
@@ -193,8 +198,8 @@ async function getProviderPerformance(startDate: Date) {
  * User Engagement Metrics
  */
 async function getUserEngagement(startDate: Date) {
-  const supabase = createRouteHandlerClient({ cookies })
-  
+  const supabase = createClient(supabaseUrl, supabaseServiceKey)
+
   const { data: sessions } = await supabase
     .from('ai_sessions')
     .select('user_hash, created_at')
@@ -227,7 +232,7 @@ async function getUserEngagement(startDate: Date) {
  * Assessment-specific Metrics
  */
 async function getAssessmentMetrics(startDate: Date) {
-  const supabase = createRouteHandlerClient({ cookies })
+  const supabase = createClient(supabaseUrl, supabaseServiceKey)
   
   const { data: sessions } = await supabase
     .from('ai_sessions')
@@ -269,7 +274,7 @@ async function getAssessmentMetrics(startDate: Date) {
  * Time Series Data for Charts
  */
 async function getTimeSeriesData(startDate: Date, timeRange: string) {
-  const supabase = createRouteHandlerClient({ cookies })
+  const supabase = createClient(supabaseUrl, supabaseServiceKey)
   
   const { data: sessions } = await supabase
     .from('ai_sessions')
@@ -308,7 +313,7 @@ async function getTimeSeriesData(startDate: Date, timeRange: string) {
  * Top Users by Activity
  */
 async function getTopUsers(startDate: Date, limit: number = 10) {
-  const supabase = createRouteHandlerClient({ cookies })
+  const supabase = createClient(supabaseUrl, supabaseServiceKey)
   
   const { data: sessions } = await supabase
     .from('ai_sessions')
@@ -349,7 +354,7 @@ async function getTopUsers(startDate: Date, limit: number = 10) {
  * Conversation Quality Metrics
  */
 async function getConversationMetrics(startDate: Date) {
-  const supabase = createRouteHandlerClient({ cookies })
+  const supabase = createClient(supabaseUrl, supabaseServiceKey)
   
   const { data: conversations } = await supabase
     .from('ai_conversations')
@@ -391,7 +396,7 @@ async function getConversationMetrics(startDate: Date) {
  * Fixed version with proper null safety for line 327 issue
  */
 async function getConversationQuality(startDate: Date) {
-  const supabase = createRouteHandlerClient({ cookies })
+  const supabase = createClient(supabaseUrl, supabaseServiceKey)
   
   const { data: sessions } = await supabase
     .from('ai_sessions')
