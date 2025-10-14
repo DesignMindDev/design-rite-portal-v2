@@ -52,7 +52,9 @@ export default function TransferSessionPage() {
 
       // Determine target URL based on environment
       const mainPlatformUrl = process.env.NEXT_PUBLIC_MAIN_PLATFORM_URL || 'https://design-rite.com'
-      const targetUrl = `${mainPlatformUrl}/admin#auth=${authDataString}`
+
+      // Add transfer=true query param to bypass middleware auth check
+      const targetUrl = `${mainPlatformUrl}/admin?transfer=true#auth=${authDataString}`
 
       console.log('[TransferSession] Redirecting to:', targetUrl)
 
