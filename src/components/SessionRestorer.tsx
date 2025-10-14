@@ -1,18 +1,20 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { useRouter, usePathname } from 'next/navigation'
+import { useRouter } from 'next/navigation'
 
 /**
- * SessionRestorer handles incoming auth tokens from cross-platform navigation.
- * When design-rite.com redirects back to portal, it includes auth tokens in the URL hash.
- * This component extracts those tokens and establishes the session in the portal.
+ * Optimized SessionRestorer for faster loading when returning from V4
  *
- * URL Format: https://portal.design-rite.com/dashboard#auth={encodedTokens}
+ * Key Optimizations:
+ * 1. Immediate localStorage caching for instant UI updates
+ * 2. URL cleaning happens immediately to prevent re-processing
+ * 3. 3-second timeout protection on session restoration
+ * 4. router.refresh() instead of window.location.reload() (much faster)
+ * 5. Dynamic Supabase import only when needed
  */
 export default function SessionRestorer() {
   const router = useRouter()
-  const pathname = usePathname()
   const [isRestoring, setIsRestoring] = useState(false)
 
   useEffect(() => {
@@ -28,39 +30,10 @@ export default function SessionRestorer() {
       }
 
       try {
-        console.log('[SessionRestorer] Found auth hash in URL')
+        console.log('[SessionRestorer] Found auth hash, starting optimized restoration...')
         setIsRestoring(true)
 
-        // Import supabase client first
-        const { supabase } = await import('@/lib/supabase')
-
-        // IMPORTANT: Check if we already have an active session
-        // This prevents trying to restore tokens that are already in use
-        const { data: { session: existingSession } } = await supabase.auth.getSession()
-
-        if (existingSession) {
-          console.log('[SessionRestorer] Active session already exists, cleaning URL and refreshing', {
-            userId: existingSession.user.id,
-            email: existingSession.user.email
-          })
-
-          // Clean up the hash from URL
-          window.history.replaceState(
-            null,
-            '',
-            window.location.pathname + window.location.search
-          )
-
-          // Force a hard refresh to ensure all components pick up the session
-          // This helps avoid the infinite loading issue
-          console.log('[SessionRestorer] Performing hard refresh to sync session state...')
-          window.location.reload()
-          return
-        }
-
-        console.log('[SessionRestorer] No existing session, attempting to restore from hash...')
-
-        // Extract and decode the auth data from the hash
+        // Extract auth data immediately
         const authMatch = hash.match(/auth=([^&]+)/)
         if (!authMatch) {
           console.error('[SessionRestorer] Invalid auth hash format')
@@ -71,59 +44,93 @@ export default function SessionRestorer() {
         const authDataString = decodeURIComponent(encodedAuth)
         const authData = JSON.parse(authDataString)
 
-        console.log('[SessionRestorer] Decoded auth data, setting session...')
+        // OPTIMIZATION 1: Store session in localStorage immediately
+        // This allows useAuth to detect it instantly while Supabase validates
+        const tempSession = {
+          access_token: authData.access_token,
+          refresh_token: authData.refresh_token,
+          timestamp: Date.now()
+        }
 
-        // Set session with timeout protection
-        const { data, error } = await supabase.auth.setSession({
+        localStorage.setItem('portal-temp-session', JSON.stringify(tempSession))
+        console.log('[SessionRestorer] Temporary session cached for instant access')
+
+        // OPTIMIZATION 2: Clean URL immediately to prevent re-processing
+        window.history.replaceState(
+          null,
+          '',
+          window.location.pathname + window.location.search
+        )
+        console.log('[SessionRestorer] URL cleaned')
+
+        // OPTIMIZATION 3: Import Supabase dynamically only when needed
+        const { supabase } = await import('@/lib/supabase')
+
+        // Check if we already have an active session
+        const { data: { session: existingSession } } = await supabase.auth.getSession()
+
+        if (existingSession) {
+          console.log('[SessionRestorer] Active session already exists, using it')
+          localStorage.removeItem('portal-temp-session')
+          router.refresh()
+          return
+        }
+
+        // OPTIMIZATION 4: Use Promise.race with 3-second timeout
+        const setSessionPromise = supabase.auth.setSession({
           access_token: authData.access_token,
           refresh_token: authData.refresh_token
         })
 
-        if (error) {
-          console.error('[SessionRestorer] Error setting session:', error)
-          throw error
+        const timeoutPromise = new Promise<never>((_, reject) =>
+          setTimeout(() => reject(new Error('Session restoration timeout')), 3000)
+        )
+
+        try {
+          const { data, error } = await Promise.race([
+            setSessionPromise,
+            timeoutPromise
+          ]) as any
+
+          if (error) {
+            console.error('[SessionRestorer] Error setting session:', error)
+            // Continue with temp session
+          } else if (data?.session) {
+            console.log('[SessionRestorer] Session restored successfully in Supabase!')
+            localStorage.removeItem('portal-temp-session')
+          }
+        } catch (timeoutError) {
+          console.warn('[SessionRestorer] Session restoration timed out after 3s, proceeding with temp session')
+          // Temp session will be used until Supabase finishes in background
         }
 
-        if (data.session) {
-          console.log('[SessionRestorer] Session restored successfully!')
+        // OPTIMIZATION 5: Use router.refresh() instead of window.location.reload()
+        // This is MUCH faster as it doesn't reload JavaScript/CSS
+        console.log('[SessionRestorer] Refreshing router...')
+        router.refresh()
 
-          // Clean up the hash from URL
-          window.history.replaceState(
-            null,
-            '',
-            window.location.pathname + window.location.search
-          )
-
-          // Force a hard refresh to ensure all components pick up the new session
-          console.log('[SessionRestorer] Performing hard refresh after session restoration...')
-          window.location.reload()
-        } else {
-          console.error('[SessionRestorer] No session returned after setSession')
-        }
       } catch (error: any) {
         console.error('[SessionRestorer] Failed to restore session:', error)
 
-        // Clean up the hash even on error
+        // Clean up on error
+        localStorage.removeItem('portal-temp-session')
         window.history.replaceState(
           null,
           '',
           window.location.pathname + window.location.search
         )
 
-        // If session restoration fails, try a hard refresh in case there's a valid session
-        if (error.message !== 'Session restoration timeout') {
-          console.log('[SessionRestorer] Attempting recovery with page reload...')
-          window.location.reload()
-        }
+        // Try router refresh anyway
+        router.refresh()
       } finally {
         setIsRestoring(false)
       }
     }
 
-    // Run restoration immediately
+    // Run immediately and only once
     restoreSessionFromHash()
-  }, []) // Only run once on mount
+  }, []) // Empty deps, run once on mount
 
-  // This component doesn't render anything visible
+  // Return nothing - this is a background process
   return null
 }
