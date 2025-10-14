@@ -101,7 +101,7 @@ export default function AdminDashboardPage() {
       icon: Map,
       href: '/admin/spatial-studio',
       color: 'from-teal-500 to-teal-600',
-      status: 'active'
+      status: 'pending'
     },
     {
       title: 'Operations',
@@ -141,7 +141,7 @@ export default function AdminDashboardPage() {
               <div>
                 <p className="text-sm text-blue-900 font-medium">Admin pages have been migrated from V4 to Portal V2</p>
                 <p className="text-sm text-blue-700 mt-1">
-                  5 of 8 admin sections are active. AI Analytics, AI Health, and Operations are pending UI component migration.
+                  4 of 8 admin sections are active. AI Analytics, AI Health, Operations, and Spatial Studio are pending UI component migration.
                 </p>
               </div>
             </div>
@@ -157,7 +157,7 @@ export default function AdminDashboardPage() {
               </div>
               <div>
                 <p className="text-sm text-gray-500 font-medium">Active Pages</p>
-                <p className="text-2xl font-bold text-gray-900">5 / 8</p>
+                <p className="text-2xl font-bold text-gray-900">4 / 8</p>
               </div>
             </div>
           </div>
@@ -258,12 +258,12 @@ export default function AdminDashboardPage() {
             <div className="flex-1">
               <h3 className="text-2xl font-bold mb-2">🚀 Migration In Progress</h3>
               <p className="text-blue-100 mb-4">
-                5 of 8 admin pages are fully functional. AI Analytics, AI Health, and Operations need UI component migration.
+                4 of 8 admin pages are fully functional. Four pages need dashboard component migration (MetricCard, TimeSeriesChart, etc.).
               </p>
               <div className="bg-white/20 rounded-full h-3 overflow-hidden">
-                <div className="bg-white h-full rounded-full transition-all duration-500" style={{ width: '62.5%' }}></div>
+                <div className="bg-white h-full rounded-full transition-all duration-500" style={{ width: '50%' }}></div>
               </div>
-              <p className="text-sm text-blue-100 mt-2">5 of 8 pages active (62.5% complete)</p>
+              <p className="text-sm text-blue-100 mt-2">4 of 8 pages active (50% complete)</p>
             </div>
           </div>
         </div>
