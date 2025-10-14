@@ -60,7 +60,7 @@ export async function GET(request: NextRequest) {
         .select('id', { count: 'exact', head: true })
         .gte('created_at', today.toISOString()),
 
-      // All users with their profiles, roles, and login info
+      // All users with their profiles and roles (using JOIN for performance)
       supabase
         .from('profiles')
         .select(`
@@ -68,7 +68,8 @@ export async function GET(request: NextRequest) {
           email,
           full_name,
           company,
-          created_at
+          created_at,
+          user_roles!inner(role)
         `)
         .order('created_at', { ascending: false })
         .limit(100),
@@ -93,55 +94,51 @@ export async function GET(request: NextRequest) {
         .limit(50)
     ]);
 
-    // Process users data - fetch roles separately
-    const usersWithRoles = await Promise.all(
-      (usersListResult.data || []).map(async (user: any) => {
-        // Get user role
-        const { data: roleData } = await supabase
-          .from('user_roles')
-          .select('role')
-          .eq('user_id', user.id)
-          .single();
+    // Process users data - roles are already joined, fetch activity separately
+    // Group activity logs by user_id for efficient lookup
+    const activityByUser = new Map<string, any[]>();
+    activityLogsResult.data?.forEach((log: any) => {
+      if (!activityByUser.has(log.user_id)) {
+        activityByUser.set(log.user_id, []);
+      }
+      activityByUser.get(log.user_id)!.push(log);
+    });
 
-        // Get activity logs for this user
-        const { data: userLogs } = await supabase
-          .from('activity_logs')
-          .select('timestamp, action')
-          .eq('user_id', user.id)
-          .order('timestamp', { ascending: false })
-          .limit(50);
+    const users = (usersListResult.data || []).map((user: any) => {
+      // Role is already joined
+      const role = user.user_roles?.role || 'user';
 
-        // Get last login from activity logs
-        const loginLogs = userLogs?.filter((log: any) =>
-          log.action === 'user_login' || log.action === 'login'
-        ) || [];
+      // Get activity logs for this user from our grouped data
+      const userLogs = activityByUser.get(user.id) || [];
 
-        const lastLogin = loginLogs.length > 0
-          ? loginLogs[0].timestamp
-          : null;
+      // Get last login from activity logs
+      const loginLogs = userLogs.filter((log: any) =>
+        log.action === 'user_login' || log.action === 'login'
+      );
 
-        const loginCount = loginLogs.length;
+      const lastLogin = loginLogs.length > 0
+        ? loginLogs[0].timestamp
+        : null;
 
-        // Determine status - assume active if they've logged in recently
-        const status = lastLogin && new Date(lastLogin) > last24h
-          ? 'active'
-          : 'pending';
+      const loginCount = loginLogs.length;
 
-        return {
-          id: user.id,
-          email: user.email,
-          full_name: user.full_name || 'N/A',
-          role: roleData?.role || 'user',
-          company: user.company || 'N/A',
-          status: status,
-          last_login: lastLogin,
-          login_count: loginCount,
-          created_at: user.created_at
-        };
-      })
-    );
+      // Determine status - assume active if they've logged in recently
+      const status = lastLogin && new Date(lastLogin) > last24h
+        ? 'active'
+        : 'pending';
 
-    const users = usersWithRoles;
+      return {
+        id: user.id,
+        email: user.email,
+        full_name: user.full_name || 'N/A',
+        role,
+        company: user.company || 'N/A',
+        status,
+        last_login: lastLogin,
+        login_count: loginCount,
+        created_at: user.created_at
+      };
+    });
 
     // Process activity logs
     const recentActivity = (activityLogsResult.data || []).map((log: any) => ({
