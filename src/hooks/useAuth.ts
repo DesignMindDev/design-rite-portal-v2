@@ -30,81 +30,137 @@ export function useAuth() {
   const hasDomainOverride = userRole?.domain_override === true
 
   useEffect(() => {
+    let mounted = true // Track if component is still mounted
+
     // Get initial session
     supabase.auth.getSession().then(async ({ data: { session } }) => {
+      if (!mounted) return // Exit if unmounted
+
       console.log('[useAuth] Initial session check:', session ? 'Session found' : 'No session')
       setUser(session?.user ?? null)
+
       if (session?.user) {
-        await loadUserData(session.user.id)
+        // Load user data with timeout protection
+        await loadUserDataWithTimeout(session.user.id, 5000) // 5 second timeout
       }
-      setLoading(false)
+
+      setLoading(false) // Always set loading to false after initial check
       console.log('[useAuth] Initial loading complete')
     }).catch((error) => {
       console.error('[useAuth] Error getting initial session:', error)
-      setLoading(false) // Always set loading=false even on error
+      if (mounted) {
+        setLoading(false) // Always set loading=false even on error
+      }
     })
 
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
+        if (!mounted) return // Exit if unmounted
+
         console.log('[useAuth] Auth state change:', event, session ? 'Session present' : 'No session')
         setUser(session?.user ?? null)
+
         if (session?.user) {
-          await loadUserData(session.user.id)
+          // Load user data with timeout protection
+          await loadUserDataWithTimeout(session.user.id, 5000) // 5 second timeout
         } else {
           setProfile(null)
           setUserRole(null)
         }
+
+        // CRITICAL: Always set loading to false after auth state change
         setLoading(false)
-        console.log('[useAuth] Auth state change complete')
+        console.log('[useAuth] Auth state change complete, loading set to false')
       }
     )
 
-    return () => subscription.unsubscribe()
+    return () => {
+      mounted = false // Mark as unmounted
+      subscription.unsubscribe()
+    }
   }, [])
+
+  // Wrapper function with timeout protection
+  async function loadUserDataWithTimeout(userId: string, timeoutMs: number = 5000) {
+    const timeoutPromise = new Promise((resolve) => {
+      setTimeout(() => {
+        console.warn(`[useAuth] User data loading timed out after ${timeoutMs}ms`)
+        resolve('timeout')
+      }, timeoutMs)
+    })
+
+    const loadPromise = loadUserData(userId)
+
+    // Race between loading data and timeout
+    const result = await Promise.race([loadPromise, timeoutPromise])
+
+    if (result === 'timeout') {
+      console.warn('[useAuth] Using defaults due to timeout')
+      // Set sensible defaults if loading times out
+      setUserRole({ role: 'user', domain_override: false })
+    }
+  }
 
   async function loadUserData(userId: string) {
     try {
       console.log('[useAuth] Loading user data for:', userId)
 
-      // Load profile with timeout
-      const { data: profileData, error: profileError } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', userId)
-        .single()
+      // Load profile and role in parallel for better performance
+      const [profileResult, roleResult] = await Promise.allSettled([
+        // Load profile
+        supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', userId)
+          .single(),
 
-      if (profileError) {
-        console.warn('[useAuth] Error loading profile:', profileError)
-      } else if (profileData) {
+        // Load user role
+        supabase
+          .from('user_roles')
+          .select('role, domain_override')
+          .eq('user_id', userId)
+          .single()
+      ])
+
+      // Handle profile result
+      if (profileResult.status === 'fulfilled' && profileResult.value.data) {
         console.log('[useAuth] Profile loaded successfully')
-        setProfile(profileData)
+        setProfile(profileResult.value.data)
+      } else if (profileResult.status === 'rejected' || profileResult.value.error) {
+        console.warn('[useAuth] Error loading profile:',
+          profileResult.status === 'rejected' ? profileResult.reason : profileResult.value.error)
       }
 
-      // Load user role with timeout
-      const { data: roleData, error: roleError } = await supabase
-        .from('user_roles')
-        .select('role, domain_override')
-        .eq('user_id', userId)
-        .single()
-
-      if (roleError) {
-        console.warn('[useAuth] Error loading role (might not exist):', roleError)
-        // Default to 'user' role if no role found
-        setUserRole({ role: 'user', domain_override: false })
-      } else if (roleData) {
-        console.log('[useAuth] Role loaded successfully:', roleData.role)
-        setUserRole(roleData)
+      // Handle role result
+      if (roleResult.status === 'fulfilled' && roleResult.value.data) {
+        console.log('[useAuth] Role loaded successfully:', roleResult.value.data.role)
+        setUserRole(roleResult.value.data)
       } else {
-        // Default to 'user' role if no role found
+        // Default to 'user' role if no role found or error
+        console.warn('[useAuth] No role found or error, using default role')
         setUserRole({ role: 'user', domain_override: false })
       }
 
       console.log('[useAuth] User data loading complete')
+      return 'success'
     } catch (error) {
-      console.error('[useAuth] Error loading user data:', error)
+      console.error('[useAuth] Unexpected error loading user data:', error)
       // Set defaults so the app can still function
       setUserRole({ role: 'user', domain_override: false })
+      return 'error'
+    }
+  }
+
+  // Force refresh function with proper error handling
+  const refresh = async () => {
+    if (!user) return
+
+    setLoading(true)
+    try {
+      await loadUserDataWithTimeout(user.id, 5000)
+    } finally {
+      setLoading(false) // Always set loading to false
     }
   }
 
@@ -118,6 +174,6 @@ export function useAuth() {
     signUp: authHelpers.signUp,
     signIn: authHelpers.signIn,
     signOut: authHelpers.signOut,
-    refresh: () => user && loadUserData(user.id)
+    refresh
   }
 }

@@ -4,9 +4,7 @@ import { useEffect, useState } from 'react'
 import { useRouter, usePathname } from 'next/navigation'
 
 /**
- * SessionRestorer Component
- *
- * Handles session restoration when returning from the main platform (v4).
+ * SessionRestorer handles incoming auth tokens from cross-platform navigation.
  * When design-rite.com redirects back to portal, it includes auth tokens in the URL hash.
  * This component extracts those tokens and establishes the session in the portal.
  *
@@ -41,20 +39,22 @@ export default function SessionRestorer() {
         const { data: { session: existingSession } } = await supabase.auth.getSession()
 
         if (existingSession) {
-          console.log('[SessionRestorer] Active session already exists, no restoration needed', {
+          console.log('[SessionRestorer] Active session already exists, cleaning URL and refreshing', {
             userId: existingSession.user.id,
             email: existingSession.user.email
           })
 
-          // Just clean up the hash and we're done
+          // Clean up the hash from URL
           window.history.replaceState(
             null,
             '',
             window.location.pathname + window.location.search
           )
 
-          console.log('[SessionRestorer] Refreshing router with existing session...')
-          router.refresh()
+          // Force a hard refresh to ensure all components pick up the session
+          // This helps avoid the infinite loading issue
+          console.log('[SessionRestorer] Performing hard refresh to sync session state...')
+          window.location.reload()
           return
         }
 
@@ -73,6 +73,7 @@ export default function SessionRestorer() {
 
         console.log('[SessionRestorer] Decoded auth data, setting session...')
 
+        // Set session with timeout protection
         const { data, error } = await supabase.auth.setSession({
           access_token: authData.access_token,
           refresh_token: authData.refresh_token
@@ -84,37 +85,45 @@ export default function SessionRestorer() {
         }
 
         if (data.session) {
-          console.log('[SessionRestorer] Session restored successfully!', {
-            userId: data.session.user.id,
-            email: data.session.user.email
-          })
+          console.log('[SessionRestorer] Session restored successfully!')
 
-          // Clean up the hash from the URL
+          // Clean up the hash from URL
           window.history.replaceState(
             null,
             '',
             window.location.pathname + window.location.search
           )
 
-          // Give the auth state change listener a moment to process
-          await new Promise(resolve => setTimeout(resolve, 100))
-
-          // Force a refresh to update auth state
-          console.log('[SessionRestorer] Refreshing router...')
-          router.refresh()
+          // Force a hard refresh to ensure all components pick up the new session
+          console.log('[SessionRestorer] Performing hard refresh after session restoration...')
+          window.location.reload()
         } else {
-          console.warn('[SessionRestorer] Session was set but data.session is null')
+          console.error('[SessionRestorer] No session returned after setSession')
         }
-      } catch (error) {
+      } catch (error: any) {
         console.error('[SessionRestorer] Failed to restore session:', error)
+
+        // Clean up the hash even on error
+        window.history.replaceState(
+          null,
+          '',
+          window.location.pathname + window.location.search
+        )
+
+        // If session restoration fails, try a hard refresh in case there's a valid session
+        if (error.message !== 'Session restoration timeout') {
+          console.log('[SessionRestorer] Attempting recovery with page reload...')
+          window.location.reload()
+        }
       } finally {
         setIsRestoring(false)
       }
     }
 
+    // Run restoration immediately
     restoreSessionFromHash()
-  }, [router, pathname])
+  }, []) // Only run once on mount
 
-  // This component doesn't render anything
+  // This component doesn't render anything visible
   return null
 }
