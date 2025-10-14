@@ -102,9 +102,46 @@ function SubscriptionContent() {
   }
 
   const handleManageBilling = async () => {
-    toast.info('Opening billing portal...', { duration: 1500 })
-    // TODO: Implement Stripe Customer Portal
-    window.open('https://billing.stripe.com/p/login/test_123', '_blank')
+    if (!user) return
+
+    try {
+      toast.info('Opening billing portal...', { duration: 1500 })
+
+      // Get auth token from session
+      const { authHelpers } = await import('@/lib/supabase')
+      const session = await authHelpers.getCurrentSession()
+
+      if (!session) {
+        toast.error('Session not found. Please sign in again.')
+        return
+      }
+
+      // Call customer portal API with auth header
+      const response = await fetch('/api/stripe/customer-portal', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`
+        }
+      })
+
+      if (!response.ok) {
+        throw new Error('Failed to create portal session')
+      }
+
+      const { url } = await response.json()
+
+      if (url) {
+        window.location.href = url
+      } else {
+        throw new Error('No portal URL returned')
+      }
+    } catch (error: any) {
+      console.error('Billing portal error:', error)
+      toast.error('Failed to open billing portal', {
+        description: error.message || 'Please try again later'
+      })
+    }
   }
 
   if (loading) {
@@ -219,7 +256,7 @@ function SubscriptionContent() {
 
                   {subscription.status === 'active' && !isOnTrial && (
                     <p className="text-white/80">
-                      Active subscription • {subscription.max_documents} documents/month
+                      Active subscription
                     </p>
                   )}
 
@@ -232,7 +269,7 @@ function SubscriptionContent() {
                 </div>
               </div>
 
-              {!isEmployee && subscription.source === 'stripe' && (
+              {!isEmployee && subscription.stripe_customer_id && (
                 <button
                   onClick={handleManageBilling}
                   className="px-6 py-3 bg-white text-primary rounded-lg font-semibold hover:bg-gray-100 transition-colors flex items-center gap-2"

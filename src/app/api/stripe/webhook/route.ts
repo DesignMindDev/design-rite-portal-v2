@@ -1,14 +1,24 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { headers } from 'next/headers'
 import Stripe from 'stripe'
 import { createClient } from '@supabase/supabase-js'
 
+// Initialize Stripe
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
   apiVersion: '2025-09-30.clover'
 })
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_KEY!
-const supabase = createClient(supabaseUrl, supabaseServiceKey)
+// Initialize Supabase with service role (bypasses RLS)
+const supabaseAdmin = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!,
+  {
+    auth: {
+      autoRefreshToken: false,
+      persistSession: false
+    }
+  }
+)
 
 const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET!
 
@@ -42,6 +52,33 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    // Check for duplicate events (idempotency)
+    const { data: existingEvent } = await supabaseAdmin
+      .from('stripe_webhook_events')
+      .select('id')
+      .eq('event_id', event.id)
+      .single()
+
+    if (existingEvent) {
+      console.log(`Duplicate event ${event.id} received, ignoring`)
+      return NextResponse.json({ received: true, duplicate: true })
+    }
+
+    // Log the event
+    const { error: logError } = await supabaseAdmin
+      .from('stripe_webhook_events')
+      .insert({
+        event_id: event.id,
+        event_type: event.type,
+        event_data: event.data.object as any,
+        processed: false
+      })
+
+    if (logError) {
+      console.error('Failed to log webhook event:', logError)
+      // Continue processing even if logging fails
+    }
+
     // Handle the event
     switch (event.type) {
       case 'checkout.session.completed':
@@ -72,6 +109,12 @@ export async function POST(request: NextRequest) {
         console.log(`Unhandled event type: ${event.type}`)
     }
 
+    // Mark event as processed
+    await supabaseAdmin
+      .from('stripe_webhook_events')
+      .update({ processed: true, processed_at: new Date().toISOString() })
+      .eq('event_id', event.id)
+
     return NextResponse.json({ received: true })
   } catch (error: any) {
     console.error('Webhook error:', error)
@@ -94,7 +137,33 @@ async function handleCheckoutComplete(session: Stripe.Checkout.Session) {
 
   console.log(`Checkout completed for user ${userId}, tier: ${tier}`)
 
-  // Subscription will be updated via customer.subscription.created event
+  // Update customer ID if present
+  if (session.customer) {
+    const { data: subscription } = await supabaseAdmin
+      .from('subscriptions')
+      .select('id')
+      .eq('user_id', userId)
+      .single()
+
+    await supabaseAdmin
+      .from('subscriptions')
+      .update({
+        stripe_customer_id: session.customer as string,
+        updated_at: new Date().toISOString()
+      })
+      .eq('user_id', userId)
+
+    if (subscription) {
+      await supabaseAdmin.rpc('log_subscription_change', {
+        p_user_id: userId,
+        p_subscription_id: subscription.id,
+        p_action: 'checkout_completed',
+        p_notes: `Checkout completed for ${tier} tier`
+      })
+    }
+  }
+
+  // Subscription details will be updated via customer.subscription.created event
 }
 
 // Handle subscription creation
@@ -107,29 +176,60 @@ async function handleSubscriptionCreated(subscription: Stripe.Subscription) {
     return
   }
 
-  const maxDocuments = TIER_TO_DOCUMENTS[tier] || 10
-
-  // Update subscription record
-  const { error } = await supabase
+  // Get existing subscription to compare
+  const { data: existingSub } = await supabaseAdmin
     .from('subscriptions')
-    .update({
-      tier,
-      status: 'active',
-      max_documents: maxDocuments,
-      source: 'stripe',
-      is_trial: false,
-      trial_start: null,
-      trial_end: null,
-      stripe_subscription_id: subscription.id,
-      stripe_price_id: subscription.items.data[0]?.price.id,
-      updated_at: new Date().toISOString()
-    })
+    .select('id, tier, status')
+    .eq('user_id', userId)
+    .single()
+
+  const status = mapStripeStatus(subscription.status)
+
+  // Update subscription record with new schema
+  const updateData: any = {
+    tier,
+    status,
+    stripe_subscription_id: subscription.id,
+    stripe_customer_id: subscription.customer as string,
+    stripe_price_id: subscription.items.data[0]?.price.id,
+    cancel_at_period_end: subscription.cancel_at_period_end || false,
+    updated_at: new Date().toISOString()
+  }
+
+  // Add optional fields if they exist
+  if ('current_period_start' in subscription && subscription.current_period_start) {
+    updateData.current_period_start = new Date((subscription.current_period_start as number) * 1000).toISOString()
+  }
+  if ('current_period_end' in subscription && subscription.current_period_end) {
+    updateData.current_period_end = new Date((subscription.current_period_end as number) * 1000).toISOString()
+  }
+  if (subscription.default_payment_method) {
+    updateData.default_payment_method = subscription.default_payment_method as string
+  }
+
+  const { error } = await supabaseAdmin
+    .from('subscriptions')
+    .update(updateData)
     .eq('user_id', userId)
 
   if (error) {
     console.error('Failed to update subscription:', error)
   } else {
     console.log(`Subscription created for user ${userId}: ${tier} tier`)
+
+    // Log to history
+    if (existingSub) {
+      await supabaseAdmin.rpc('log_subscription_change', {
+        p_user_id: userId,
+        p_subscription_id: existingSub.id,
+        p_action: 'subscription_created',
+        p_old_tier: existingSub.tier,
+        p_new_tier: tier,
+        p_old_status: existingSub.status,
+        p_new_status: status,
+        p_notes: `Stripe subscription created: ${subscription.id}`
+      })
+    }
   }
 }
 
@@ -143,25 +243,62 @@ async function handleSubscriptionUpdated(subscription: Stripe.Subscription) {
     return
   }
 
-  const maxDocuments = TIER_TO_DOCUMENTS[tier] || 10
+  // Get existing subscription to compare
+  const { data: existingSub } = await supabaseAdmin
+    .from('subscriptions')
+    .select('id, tier, status')
+    .eq('user_id', userId)
+    .single()
+
   const status = mapStripeStatus(subscription.status)
 
-  // Update subscription record
-  const { error } = await supabase
+  // Update subscription record with new schema
+  const updateData: any = {
+    tier,
+    status,
+    stripe_customer_id: subscription.customer as string,
+    stripe_price_id: subscription.items.data[0]?.price.id,
+    cancel_at_period_end: subscription.cancel_at_period_end || false,
+    updated_at: new Date().toISOString()
+  }
+
+  // Add optional fields if they exist
+  if ('current_period_start' in subscription && subscription.current_period_start) {
+    updateData.current_period_start = new Date((subscription.current_period_start as number) * 1000).toISOString()
+  }
+  if ('current_period_end' in subscription && subscription.current_period_end) {
+    updateData.current_period_end = new Date((subscription.current_period_end as number) * 1000).toISOString()
+  }
+  if ('canceled_at' in subscription && subscription.canceled_at) {
+    updateData.canceled_at = new Date((subscription.canceled_at as number) * 1000).toISOString()
+  }
+  if (subscription.default_payment_method) {
+    updateData.default_payment_method = subscription.default_payment_method as string
+  }
+
+  const { error } = await supabaseAdmin
     .from('subscriptions')
-    .update({
-      tier,
-      status,
-      max_documents: maxDocuments,
-      stripe_price_id: subscription.items.data[0]?.price.id,
-      updated_at: new Date().toISOString()
-    })
+    .update(updateData)
     .eq('user_id', userId)
 
   if (error) {
     console.error('Failed to update subscription:', error)
   } else {
     console.log(`Subscription updated for user ${userId}: ${tier} tier, status: ${status}`)
+
+    // Log to history
+    if (existingSub) {
+      await supabaseAdmin.rpc('log_subscription_change', {
+        p_user_id: userId,
+        p_subscription_id: existingSub.id,
+        p_action: 'subscription_updated',
+        p_old_tier: existingSub.tier,
+        p_new_tier: tier,
+        p_old_status: existingSub.status,
+        p_new_status: status,
+        p_notes: `Stripe subscription updated: ${subscription.id}`
+      })
+    }
   }
 }
 
@@ -174,17 +311,22 @@ async function handleSubscriptionDeleted(subscription: Stripe.Subscription) {
     return
   }
 
-  // Downgrade to free tier
-  const { error } = await supabase
+  // Get existing subscription to compare
+  const { data: existingSub } = await supabaseAdmin
+    .from('subscriptions')
+    .select('id, tier, status')
+    .eq('user_id', userId)
+    .single()
+
+  // Downgrade to free tier with new schema
+  const { error } = await supabaseAdmin
     .from('subscriptions')
     .update({
       tier: 'free',
       status: 'canceled',
-      max_documents: 2,
-      source: 'free',
-      is_trial: false,
       stripe_subscription_id: null,
       stripe_price_id: null,
+      canceled_at: new Date().toISOString(),
       updated_at: new Date().toISOString()
     })
     .eq('user_id', userId)
@@ -193,6 +335,20 @@ async function handleSubscriptionDeleted(subscription: Stripe.Subscription) {
     console.error('Failed to cancel subscription:', error)
   } else {
     console.log(`Subscription canceled for user ${userId}, downgraded to free tier`)
+
+    // Log to history
+    if (existingSub) {
+      await supabaseAdmin.rpc('log_subscription_change', {
+        p_user_id: userId,
+        p_subscription_id: existingSub.id,
+        p_action: 'subscription_deleted',
+        p_old_tier: existingSub.tier,
+        p_new_tier: 'free',
+        p_old_status: existingSub.status,
+        p_new_status: 'canceled',
+        p_notes: `Stripe subscription deleted: ${subscription.id}`
+      })
+    }
   }
 }
 
@@ -211,8 +367,15 @@ async function handlePaymentSucceeded(invoice: Stripe.Invoice) {
     return
   }
 
+  // Get existing subscription
+  const { data: existingSub } = await supabaseAdmin
+    .from('subscriptions')
+    .select('id, status')
+    .eq('user_id', userId)
+    .single()
+
   // Ensure subscription is active
-  const { error } = await supabase
+  const { error } = await supabaseAdmin
     .from('subscriptions')
     .update({
       status: 'active',
@@ -224,6 +387,21 @@ async function handlePaymentSucceeded(invoice: Stripe.Invoice) {
     console.error('Failed to update subscription after payment:', error)
   } else {
     console.log(`Payment succeeded for user ${userId}`)
+
+    // Log to history
+    if (existingSub) {
+      const invoiceAmountFormatted = ((invoice.amount_paid || 0) / 100).toString()
+      const invoiceCurrency = (invoice.currency || 'usd').toUpperCase()
+
+      await supabaseAdmin.rpc('log_subscription_change', {
+        p_user_id: userId,
+        p_subscription_id: existingSub.id,
+        p_action: 'payment_succeeded',
+        p_old_status: existingSub.status,
+        p_new_status: 'active',
+        p_notes: `Payment succeeded: ${invoiceAmountFormatted} ${invoiceCurrency} (Invoice: ${invoice.id})`
+      })
+    }
   }
 }
 
@@ -242,8 +420,15 @@ async function handlePaymentFailed(invoice: Stripe.Invoice) {
     return
   }
 
+  // Get existing subscription
+  const { data: existingSub } = await supabaseAdmin
+    .from('subscriptions')
+    .select('id, status')
+    .eq('user_id', userId)
+    .single()
+
   // Mark subscription as past_due
-  const { error } = await supabase
+  const { error } = await supabaseAdmin
     .from('subscriptions')
     .update({
       status: 'past_due',
@@ -255,6 +440,21 @@ async function handlePaymentFailed(invoice: Stripe.Invoice) {
     console.error('Failed to update subscription after failed payment:', error)
   } else {
     console.log(`Payment failed for user ${userId}, marked as past_due`)
+
+    // Log to history
+    if (existingSub) {
+      const invoiceAmountFormatted = ((invoice.amount_due || 0) / 100).toString()
+      const invoiceCurrency = (invoice.currency || 'usd').toUpperCase()
+
+      await supabaseAdmin.rpc('log_subscription_change', {
+        p_user_id: userId,
+        p_subscription_id: existingSub.id,
+        p_action: 'payment_failed',
+        p_old_status: existingSub.status,
+        p_new_status: 'past_due',
+        p_notes: `Payment failed: ${invoiceAmountFormatted} ${invoiceCurrency} (Invoice: ${invoice.id})`
+      })
+    }
   }
 }
 

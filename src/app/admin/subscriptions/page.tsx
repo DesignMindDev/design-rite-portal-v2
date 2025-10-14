@@ -145,6 +145,11 @@ export default function AdminSubscriptionsPage() {
 
   // Calculate metrics manually from subscriptions data
   const calculateMetricsManually = useCallback(() => {
+    if (subscriptions.length === 0) {
+      setMetrics(null);
+      return;
+    }
+
     const active = subscriptions.filter(s => s.status === 'active').length;
     const trialing = subscriptions.filter(s => s.status === 'trialing').length;
     const cancelled = subscriptions.filter(s => s.status === 'cancelled').length;
@@ -198,10 +203,9 @@ export default function AdminSubscriptionsPage() {
   }, [isEmployee, fetchSubscriptions]);
 
   useEffect(() => {
-    if (subscriptions.length > 0) {
-      calculateMetricsManually();
-    }
-  }, [subscriptions, calculateMetricsManually]);
+    calculateMetricsManually();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [subscriptions]);
 
   // Filter subscriptions
   useEffect(() => {
