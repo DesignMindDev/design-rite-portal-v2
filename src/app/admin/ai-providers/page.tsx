@@ -999,7 +999,20 @@ export default function AIProvidersAdmin() {
                 </label>
               </div>
               <button
-                onClick={() => saveProvider(data.settings, true)}
+                onClick={() => {
+                  // Save settings configuration
+                  fetch('/api/admin/ai-providers', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                      action: 'update_settings',
+                      settings: data.settings
+                    })
+                  }).then(() => {
+                    alert('Settings saved!')
+                    loadData()
+                  })
+                }}
                 className="bg-purple-600 hover:bg-purple-700 text-white px-6 py-3 rounded-lg font-semibold transition-colors"
               >
                 Save Settings
