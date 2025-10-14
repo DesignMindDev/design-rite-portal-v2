@@ -109,7 +109,7 @@ export default function AdminDashboardPage() {
       icon: Settings,
       href: '/admin/operations',
       color: 'from-gray-500 to-gray-600',
-      status: 'active'
+      status: 'pending'
     },
     {
       title: 'Subscriptions',
@@ -141,7 +141,7 @@ export default function AdminDashboardPage() {
               <div>
                 <p className="text-sm text-blue-900 font-medium">Admin pages have been migrated from V4 to Portal V2</p>
                 <p className="text-sm text-blue-700 mt-1">
-                  6 of 8 admin sections are active. AI Analytics and AI Health are pending UI component migration.
+                  5 of 8 admin sections are active. AI Analytics, AI Health, and Operations are pending UI component migration.
                 </p>
               </div>
             </div>
@@ -157,7 +157,7 @@ export default function AdminDashboardPage() {
               </div>
               <div>
                 <p className="text-sm text-gray-500 font-medium">Active Pages</p>
-                <p className="text-2xl font-bold text-gray-900">6 / 8</p>
+                <p className="text-2xl font-bold text-gray-900">5 / 8</p>
               </div>
             </div>
           </div>
@@ -258,12 +258,12 @@ export default function AdminDashboardPage() {
             <div className="flex-1">
               <h3 className="text-2xl font-bold mb-2">🚀 Migration In Progress</h3>
               <p className="text-blue-100 mb-4">
-                6 of 8 admin pages are fully functional. AI Analytics and AI Health need UI component migration (shadcn/ui components).
+                5 of 8 admin pages are fully functional. AI Analytics, AI Health, and Operations need UI component migration.
               </p>
               <div className="bg-white/20 rounded-full h-3 overflow-hidden">
-                <div className="bg-white h-full rounded-full transition-all duration-500" style={{ width: '75%' }}></div>
+                <div className="bg-white h-full rounded-full transition-all duration-500" style={{ width: '62.5%' }}></div>
               </div>
-              <p className="text-sm text-blue-100 mt-2">6 of 8 pages active (75% complete)</p>
+              <p className="text-sm text-blue-100 mt-2">5 of 8 pages active (62.5% complete)</p>
             </div>
           </div>
         </div>
