@@ -5,10 +5,6 @@ import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { Users, UserPlus, Shield, Activity, TrendingUp, ArrowLeft } from 'lucide-react';
-import { createClient } from '@supabase/supabase-js';
-
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
 
 interface User {
   id: string;
@@ -49,7 +45,8 @@ export default function UserManagementPage() {
     try {
       setLoading(true);
 
-      const supabase = createClient(supabaseUrl, supabaseAnonKey);
+      // Use the authenticated user's session instead of creating new client
+      const { supabase: authenticatedSupabase } = await import('@/lib/supabase');
 
       console.log('[UserManagement] Fetching users...');
 
@@ -57,7 +54,7 @@ export default function UserManagementPage() {
       // This avoids the JOIN error between profiles and user_roles
 
       // Step 1: Fetch all profiles
-      const { data: profiles, error: profilesError } = await supabase
+      const { data: profiles, error: profilesError } = await authenticatedSupabase
         .from('profiles')
         .select('id, email, full_name, company, created_at')
         .order('created_at', { ascending: false });
@@ -70,7 +67,7 @@ export default function UserManagementPage() {
       console.log('[UserManagement] Fetched profiles:', profiles?.length || 0);
 
       // Step 2: Fetch all user roles
-      const { data: userRoles, error: rolesError } = await supabase
+      const { data: userRoles, error: rolesError } = await authenticatedSupabase
         .from('user_roles')
         .select('user_id, role');
 
