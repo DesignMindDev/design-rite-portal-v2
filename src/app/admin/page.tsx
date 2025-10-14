@@ -16,7 +16,9 @@ import {
   Briefcase,
   TrendingUp,
   Shield,
-  AlertCircle
+  AlertCircle,
+  UsersRound,
+  Palette
 } from 'lucide-react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
@@ -69,7 +71,7 @@ export default function AdminDashboardPage() {
       icon: BarChart3,
       href: '/admin/ai-analytics',
       color: 'from-purple-500 to-purple-600',
-      status: 'pending'
+      status: 'active'
     },
     {
       title: 'AI Health',
@@ -77,7 +79,7 @@ export default function AdminDashboardPage() {
       icon: Activity,
       href: '/admin/ai-health',
       color: 'from-green-500 to-green-600',
-      status: 'pending'
+      status: 'active'
     },
     {
       title: 'User Management',
@@ -109,7 +111,7 @@ export default function AdminDashboardPage() {
       icon: Settings,
       href: '/admin/operations',
       color: 'from-gray-500 to-gray-600',
-      status: 'pending'
+      status: 'active'
     },
     {
       title: 'Subscriptions',
@@ -117,6 +119,22 @@ export default function AdminDashboardPage() {
       icon: TrendingUp,
       href: '/admin/subscriptions',
       color: 'from-pink-500 to-pink-600',
+      status: 'active'
+    },
+    {
+      title: 'Team Management',
+      description: 'Manage team members and roles',
+      icon: UsersRound,
+      href: '/admin/team',
+      color: 'from-blue-500 to-blue-600',
+      status: 'active'
+    },
+    {
+      title: 'Logos & Branding',
+      description: 'Manage company logos and brand assets',
+      icon: Palette,
+      href: '/admin/logos',
+      color: 'from-rose-500 to-rose-600',
       status: 'active'
     }
   ]
@@ -135,13 +153,13 @@ export default function AdminDashboardPage() {
               <p className="text-gray-600">Portal V2 - Consolidated Admin Control</p>
             </div>
           </div>
-          <div className="mt-4 bg-blue-50 border border-blue-200 rounded-lg p-4">
+          <div className="mt-4 bg-green-50 border border-green-200 rounded-lg p-4">
             <div className="flex items-start gap-3">
-              <AlertCircle className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
+              <AlertCircle className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
               <div>
-                <p className="text-sm text-blue-900 font-medium">Admin pages have been migrated from V4 to Portal V2</p>
-                <p className="text-sm text-blue-700 mt-1">
-                  4 of 8 admin sections are active. AI Analytics, AI Health, Operations, and Spatial Studio are pending UI component migration.
+                <p className="text-sm text-green-900 font-medium">All admin pages are now active!</p>
+                <p className="text-sm text-green-700 mt-1">
+                  9 of 10 admin sections are fully functional. Only Spatial Studio is pending migration.
                 </p>
               </div>
             </div>
@@ -157,7 +175,7 @@ export default function AdminDashboardPage() {
               </div>
               <div>
                 <p className="text-sm text-gray-500 font-medium">Active Pages</p>
-                <p className="text-2xl font-bold text-gray-900">4 / 8</p>
+                <p className="text-2xl font-bold text-gray-900">9 / 10</p>
               </div>
             </div>
           </div>
@@ -256,14 +274,14 @@ export default function AdminDashboardPage() {
               <Shield className="w-6 h-6" />
             </div>
             <div className="flex-1">
-              <h3 className="text-2xl font-bold mb-2">🚀 Migration In Progress</h3>
+              <h3 className="text-2xl font-bold mb-2">🎉 Migration Nearly Complete!</h3>
               <p className="text-blue-100 mb-4">
-                4 of 8 admin pages are fully functional. Four pages need dashboard component migration (MetricCard, TimeSeriesChart, etc.).
+                9 of 10 admin pages are now live with full functionality. Only Spatial Studio remaining.
               </p>
               <div className="bg-white/20 rounded-full h-3 overflow-hidden">
-                <div className="bg-white h-full rounded-full transition-all duration-500" style={{ width: '50%' }}></div>
+                <div className="bg-white h-full rounded-full transition-all duration-500" style={{ width: '90%' }}></div>
               </div>
-              <p className="text-sm text-blue-100 mt-2">4 of 8 pages active (50% complete)</p>
+              <p className="text-sm text-blue-100 mt-2">9 of 10 pages active (90% complete)</p>
             </div>
           </div>
         </div>
