@@ -40,8 +40,8 @@ export function useAuth() {
       setUser(session?.user ?? null)
 
       if (session?.user) {
-        // Load user data with timeout protection
-        await loadUserDataWithTimeout(session.user.id, 5000) // 5 second timeout
+        // Load user data with timeout protection (10 seconds)
+        await loadUserDataWithTimeout(session.user.id, 10000)
       }
 
       setLoading(false) // Always set loading to false after initial check
@@ -62,8 +62,8 @@ export function useAuth() {
         setUser(session?.user ?? null)
 
         if (session?.user) {
-          // Load user data with timeout protection
-          await loadUserDataWithTimeout(session.user.id, 5000) // 5 second timeout
+          // Load user data with timeout protection (10 seconds)
+          await loadUserDataWithTimeout(session.user.id, 10000)
         } else {
           setProfile(null)
           setUserRole(null)
@@ -82,7 +82,7 @@ export function useAuth() {
   }, [])
 
   // Wrapper function with timeout protection
-  async function loadUserDataWithTimeout(userId: string, timeoutMs: number = 5000) {
+  async function loadUserDataWithTimeout(userId: string, timeoutMs: number = 10000) {
     const timeoutPromise = new Promise((resolve) => {
       setTimeout(() => {
         console.warn(`[useAuth] User data loading timed out after ${timeoutMs}ms`)
@@ -158,7 +158,7 @@ export function useAuth() {
 
     setLoading(true)
     try {
-      await loadUserDataWithTimeout(user.id, 5000)
+      await loadUserDataWithTimeout(user.id, 10000)
     } finally {
       setLoading(false) // Always set loading to false
     }
