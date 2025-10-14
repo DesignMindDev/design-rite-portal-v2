@@ -12,11 +12,14 @@ export default function TransferSessionPage() {
 
   useEffect(() => {
     console.log('[TransferSession] useEffect triggered', { loading, user: !!user })
-    if (!loading && user) {
-      console.log('[TransferSession] Calling handleTransfer()')
+
+    // Only wait for user to be present, don't wait for loading to finish
+    // because loading might stay true while fetching profile/role data
+    if (user) {
+      console.log('[TransferSession] User found - calling handleTransfer()')
       handleTransfer()
     } else if (!loading && !user) {
-      console.log('[TransferSession] No user found - cannot transfer session')
+      console.log('[TransferSession] Loading complete but no user found')
     }
   }, [user, loading])
 
@@ -62,7 +65,8 @@ export default function TransferSessionPage() {
     }
   }
 
-  if (loading) {
+  // Show loading state while waiting for user (but not if we already have user)
+  if (loading && !user) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-purple-50 via-white to-blue-50">
         <Loader2 className="w-12 h-12 animate-spin text-primary mb-4" />
