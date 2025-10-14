@@ -51,33 +51,51 @@ export default function UserManagementPage() {
 
       const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
-      // Fetch all users with their roles
-      const { data: profiles, error } = await supabase
+      console.log('[UserManagement] Fetching users...');
+
+      // FIXED: Fetch profiles and roles separately, then combine in memory
+      // This avoids the JOIN error between profiles and user_roles
+
+      // Step 1: Fetch all profiles
+      const { data: profiles, error: profilesError } = await supabase
         .from('profiles')
-        .select(`
-          id,
-          email,
-          full_name,
-          company,
-          created_at,
-          user_roles!inner(role)
-        `)
+        .select('id, email, full_name, company, created_at')
         .order('created_at', { ascending: false });
 
-      if (error) {
-        console.error('[UserManagement] Error fetching users:', error);
+      if (profilesError) {
+        console.error('[UserManagement] Error fetching profiles:', profilesError);
         return;
       }
 
-      // Process users
-      const processedUsers: User[] = (profiles || []).map((profile: any) => ({
-        id: profile.id,
-        email: profile.email,
-        full_name: profile.full_name || 'N/A',
-        role: profile.user_roles?.role || 'user',
-        company: profile.company || 'N/A',
-        created_at: profile.created_at
-      }));
+      console.log('[UserManagement] Fetched profiles:', profiles?.length || 0);
+
+      // Step 2: Fetch all user roles
+      const { data: userRoles, error: rolesError } = await supabase
+        .from('user_roles')
+        .select('user_id, role');
+
+      if (rolesError) {
+        console.error('[UserManagement] Error fetching roles:', rolesError);
+        // Continue even if roles fail - we'll use 'user' as default
+      }
+
+      console.log('[UserManagement] Fetched roles:', userRoles?.length || 0);
+
+      // Step 3: Combine profiles with their roles in memory
+      const processedUsers: User[] = (profiles || []).map((profile: any) => {
+        const userRole = userRoles?.find(r => r.user_id === profile.id);
+
+        return {
+          id: profile.id,
+          email: profile.email,
+          full_name: profile.full_name || 'N/A',
+          role: userRole?.role || 'user',
+          company: profile.company || 'N/A',
+          created_at: profile.created_at
+        };
+      });
+
+      console.log('[UserManagement] Processed users:', processedUsers.length);
 
       setUsers(processedUsers);
 
@@ -90,6 +108,12 @@ export default function UserManagementPage() {
         employees: employeeCount,
         customers: processedUsers.length - employeeCount,
         activeToday: 0 // We'll skip activity tracking for now
+      });
+
+      console.log('[UserManagement] Stats calculated:', {
+        totalUsers: processedUsers.length,
+        employees: employeeCount,
+        customers: processedUsers.length - employeeCount
       });
 
     } catch (error) {
