@@ -16,7 +16,7 @@ interface User {
 }
 
 export default function UserManagementPage() {
-  const { user, loading: authLoading, isEmployee, userRole } = useAuth();
+  const { user, loading: authLoading, userRole } = useAuth();
   const router = useRouter();
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
@@ -27,19 +27,23 @@ export default function UserManagementPage() {
     activeToday: 0
   });
 
-  // Redirect if not employee
+  // Check if user is super_admin
+  const isSuperAdmin = userRole?.role === 'super_admin';
+
+  // Redirect if not super_admin
   useEffect(() => {
-    if (!authLoading && (!user || !isEmployee)) {
+    if (!authLoading && (!user || !isSuperAdmin)) {
+      console.log('[UserManagement] Access denied - not super_admin:', { user: !!user, role: userRole?.role });
       router.push('/dashboard');
     }
-  }, [user, authLoading, isEmployee, router]);
+  }, [user, authLoading, isSuperAdmin, userRole, router]);
 
   // Fetch users
   useEffect(() => {
-    if (user && isEmployee) {
+    if (user && isSuperAdmin) {
       fetchUsers();
     }
-  }, [user, isEmployee]);
+  }, [user, isSuperAdmin]);
 
   const fetchUsers = async () => {
     try {
@@ -156,7 +160,7 @@ export default function UserManagementPage() {
     );
   }
 
-  if (!user || !isEmployee) {
+  if (!user || !isSuperAdmin) {
     return null;
   }
 
