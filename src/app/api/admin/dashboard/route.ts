@@ -68,12 +68,7 @@ export async function GET(request: NextRequest) {
           email,
           full_name,
           company,
-          created_at,
-          user_roles!inner(role),
-          activity_logs(
-            timestamp,
-            action
-          )
+          created_at
         `)
         .order('created_at', { ascending: false })
         .limit(100),
@@ -98,37 +93,55 @@ export async function GET(request: NextRequest) {
         .limit(50)
     ]);
 
-    // Process users data
-    const users = (usersListResult.data || []).map((user: any) => {
-      // Get last login from activity logs
-      const loginLogs = user.activity_logs?.filter((log: any) =>
-        log.action === 'user_login' || log.action === 'login'
-      ) || [];
+    // Process users data - fetch roles separately
+    const usersWithRoles = await Promise.all(
+      (usersListResult.data || []).map(async (user: any) => {
+        // Get user role
+        const { data: roleData } = await supabase
+          .from('user_roles')
+          .select('role')
+          .eq('user_id', user.id)
+          .single();
 
-      const lastLogin = loginLogs.length > 0
-        ? loginLogs[0].timestamp
-        : null;
+        // Get activity logs for this user
+        const { data: userLogs } = await supabase
+          .from('activity_logs')
+          .select('timestamp, action')
+          .eq('user_id', user.id)
+          .order('timestamp', { ascending: false })
+          .limit(50);
 
-      const loginCount = loginLogs.length;
+        // Get last login from activity logs
+        const loginLogs = userLogs?.filter((log: any) =>
+          log.action === 'user_login' || log.action === 'login'
+        ) || [];
 
-      // Determine status (you may have a status field in profiles)
-      // For now, assume active if they've logged in recently
-      const status = lastLogin && new Date(lastLogin) > last24h
-        ? 'active'
-        : 'pending';
+        const lastLogin = loginLogs.length > 0
+          ? loginLogs[0].timestamp
+          : null;
 
-      return {
-        id: user.id,
-        email: user.email,
-        full_name: user.full_name || 'N/A',
-        role: user.user_roles?.role || 'user',
-        company: user.company || 'N/A',
-        status: status,
-        last_login: lastLogin,
-        login_count: loginCount,
-        created_at: user.created_at
-      };
-    });
+        const loginCount = loginLogs.length;
+
+        // Determine status - assume active if they've logged in recently
+        const status = lastLogin && new Date(lastLogin) > last24h
+          ? 'active'
+          : 'pending';
+
+        return {
+          id: user.id,
+          email: user.email,
+          full_name: user.full_name || 'N/A',
+          role: roleData?.role || 'user',
+          company: user.company || 'N/A',
+          status: status,
+          last_login: lastLogin,
+          login_count: loginCount,
+          created_at: user.created_at
+        };
+      })
+    );
+
+    const users = usersWithRoles;
 
     // Process activity logs
     const recentActivity = (activityLogsResult.data || []).map((log: any) => ({
