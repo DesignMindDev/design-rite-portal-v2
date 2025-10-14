@@ -56,7 +56,7 @@ interface ActivityLog {
 }
 
 export default function SuperAdminDashboard() {
-  const { user, loading: authLoading, isEmployee } = useAuth();
+  const { user, profile, loading: authLoading, isEmployee } = useAuth();
   const router = useRouter();
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [users, setUsers] = useState<User[]>([]);
@@ -276,7 +276,7 @@ export default function SuperAdminDashboard() {
               Admin Dashboard
             </h1>
             <p className="text-gray-400">
-              Logged in as: {user?.full_name || user?.email}
+              Logged in as: {profile?.full_name || user?.email}
             </p>
           </div>
           <div className="flex gap-3 items-center">
