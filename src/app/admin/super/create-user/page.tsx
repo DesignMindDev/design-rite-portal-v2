@@ -4,13 +4,14 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
 import Link from 'next/link';
-import { ArrowLeft, UserPlus, Mail, Building, Shield, Loader2 } from 'lucide-react';
+import { ArrowLeft, UserPlus, Mail, Building, Shield, Loader2, Eye, EyeOff } from 'lucide-react';
 import { toast } from 'sonner';
 
 export default function CreateUserPage() {
   const router = useRouter();
-  const { userRole, loading: authLoading } = useAuth();
+  const { user, userRole, loading: authLoading } = useAuth();
   const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
   const [formData, setFormData] = useState({
     email: '',
     password: '',
@@ -85,9 +86,22 @@ export default function CreateUserPage() {
     setLoading(true);
 
     try {
+      // Get the user's session token
+      const { supabase } = await import('@/lib/supabase');
+      const { data: { session } } = await supabase.auth.getSession();
+
+      if (!session) {
+        toast.error('Session expired. Please sign in again.');
+        router.push('/auth');
+        return;
+      }
+
       const response = await fetch('/api/admin/create-employee', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`
+        },
         body: JSON.stringify(formData)
       });
 
@@ -187,15 +201,29 @@ export default function CreateUserPage() {
                 <Shield className="w-4 h-4 inline mr-2" />
                 Password *
               </label>
-              <input
-                type="password"
-                required
-                minLength={8}
-                value={formData.password}
-                onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                className="w-full bg-black border border-purple-600/30 rounded-lg px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-purple-400 transition-colors"
-                placeholder="Minimum 8 characters"
-              />
+              <div className="relative">
+                <input
+                  type={showPassword ? 'text' : 'password'}
+                  required
+                  minLength={8}
+                  value={formData.password}
+                  onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                  className="w-full bg-black border border-purple-600/30 rounded-lg px-4 py-3 pr-12 text-white placeholder-gray-500 focus:outline-none focus:border-purple-400 transition-colors"
+                  placeholder="Minimum 8 characters"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-gray-400 hover:text-white transition-colors"
+                  title={showPassword ? 'Hide password' : 'Show password'}
+                >
+                  {showPassword ? (
+                    <EyeOff className="w-5 h-5" />
+                  ) : (
+                    <Eye className="w-5 h-5" />
+                  )}
+                </button>
+              </div>
 
               {/* Password Strength Indicator */}
               {passwordStrength && (
