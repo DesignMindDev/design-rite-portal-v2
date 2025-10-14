@@ -1,0 +1,17 @@
+{
+  "providers": [],
+  "health_checks": [],
+  "settings": {
+    "health_check_interval_minutes": 5,
+    "auto_failover_enabled": true,
+    "fallback_to_static_responses": true
+  },
+  "chatbot_config": {
+    "assistant_id": "asst_bqlPjRKyztWpplupYhCimIzS",
+    "thread_management": true,
+    "auto_initialize": true,
+    "fallback_enabled": true,
+    "max_conversation_length": 50,
+    "response_timeout_ms": 30000
+  }
+}
