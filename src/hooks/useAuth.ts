@@ -31,6 +31,8 @@ export function useAuth() {
 
   useEffect(() => {
     let mounted = true // Track if component is still mounted
+    let loadingInProgress = false // Prevent duplicate loads
+    let initialLoadComplete = false // Track if initial load is done
 
     // Get initial session
     supabase.auth.getSession().then(async ({ data: { session } }) => {
@@ -39,9 +41,12 @@ export function useAuth() {
       console.log('[useAuth] Initial session check:', session ? 'Session found' : 'No session')
       setUser(session?.user ?? null)
 
-      if (session?.user) {
-        // Load user data with timeout protection (10 seconds)
-        await loadUserDataWithTimeout(session.user.id, 10000)
+      if (session?.user && !loadingInProgress) {
+        loadingInProgress = true
+        // Load user data with timeout protection (5 seconds)
+        await loadUserDataWithTimeout(session.user.id, 5000)
+        loadingInProgress = false
+        initialLoadComplete = true
       }
 
       setLoading(false) // Always set loading to false after initial check
@@ -58,13 +63,21 @@ export function useAuth() {
       async (event, session) => {
         if (!mounted) return // Exit if unmounted
 
+        // Skip INITIAL_SESSION event if we already loaded during getSession()
+        if (event === 'INITIAL_SESSION' && initialLoadComplete) {
+          console.log('[useAuth] Skipping duplicate INITIAL_SESSION load')
+          return
+        }
+
         console.log('[useAuth] Auth state change:', event, session ? 'Session present' : 'No session')
         setUser(session?.user ?? null)
 
-        if (session?.user) {
-          // Load user data with timeout protection (10 seconds)
-          await loadUserDataWithTimeout(session.user.id, 10000)
-        } else {
+        if (session?.user && !loadingInProgress) {
+          loadingInProgress = true
+          // Load user data with timeout protection (5 seconds)
+          await loadUserDataWithTimeout(session.user.id, 5000)
+          loadingInProgress = false
+        } else if (!session?.user) {
           setProfile(null)
           setUserRole(null)
         }
@@ -82,10 +95,10 @@ export function useAuth() {
   }, [])
 
   // Wrapper function with timeout protection
-  async function loadUserDataWithTimeout(userId: string, timeoutMs: number = 10000) {
+  async function loadUserDataWithTimeout(userId: string, timeoutMs: number = 5000) {
     const timeoutPromise = new Promise((resolve) => {
       setTimeout(() => {
-        console.warn(`[useAuth] User data loading timed out after ${timeoutMs}ms`)
+        console.warn(`[useAuth] Profile/role query timed out after ${timeoutMs}ms - using defaults`)
         resolve('timeout')
       }, timeoutMs)
     })
@@ -96,7 +109,7 @@ export function useAuth() {
     const result = await Promise.race([loadPromise, timeoutPromise])
 
     if (result === 'timeout') {
-      console.warn('[useAuth] Using defaults due to timeout')
+      console.warn('[useAuth] Proceeding with default user role (query will complete in background)')
       // Set sensible defaults if loading times out
       setUserRole({ role: 'user', domain_override: false })
     }
@@ -158,7 +171,7 @@ export function useAuth() {
 
     setLoading(true)
     try {
-      await loadUserDataWithTimeout(user.id, 10000)
+      await loadUserDataWithTimeout(user.id, 5000)
     } finally {
       setLoading(false) // Always set loading to false
     }
