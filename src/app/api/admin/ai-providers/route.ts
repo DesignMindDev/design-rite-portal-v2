@@ -130,7 +130,8 @@ async function verifySupabaseConnection() {
 
     return { success: true, message: 'Supabase connection successful' }
   } catch (error) {
-    return { success: false, error: error.message || 'Unknown error' }
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+    return { success: false, error: errorMessage }
   }
 }
 
@@ -352,9 +353,10 @@ export async function POST(request: NextRequest) {
 
   } catch (error) {
     console.error('Error managing AI providers:', error)
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error'
     return NextResponse.json({
       error: 'Failed to manage AI provider',
-      details: error.message
+      details: errorMessage
     }, { status: 500 })
   }
 }
@@ -452,10 +454,11 @@ async function testProviderConnection(provider: AIProvider): Promise<{
 
   } catch (error) {
     const responseTime = Date.now() - startTime
+    const errorMessage = error instanceof Error ? error.message : (typeof error === 'string' ? error : 'Unknown error')
     return {
       success: false,
       response_time: responseTime,
-      error: error?.message || error?.toString() || 'Unknown error'
+      error: errorMessage
     }
   }
 }
