@@ -654,7 +654,14 @@ export default function AIProvidersAdmin() {
                       value={data.chatbot_config?.assistant_id || 'asst_bqlPjRKyztWpplupYhCimIzS'}
                       onChange={(e) => setData({
                         ...data,
-                        chatbot_config: {...(data.chatbot_config || {}), assistant_id: e.target.value}
+                        chatbot_config: {
+                          thread_management: data.chatbot_config?.thread_management ?? true,
+                          auto_initialize: data.chatbot_config?.auto_initialize ?? true,
+                          fallback_enabled: data.chatbot_config?.fallback_enabled ?? true,
+                          max_conversation_length: data.chatbot_config?.max_conversation_length ?? 50,
+                          response_timeout_ms: data.chatbot_config?.response_timeout_ms ?? 30000,
+                          assistant_id: e.target.value
+                        }
                       })}
                       className="w-full px-4 py-3 bg-black/30 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:border-purple-500 focus:outline-none font-mono text-sm"
                     />
@@ -666,7 +673,14 @@ export default function AIProvidersAdmin() {
                       value={data.chatbot_config?.response_timeout_ms || 30000}
                       onChange={(e) => setData({
                         ...data,
-                        chatbot_config: {...(data.chatbot_config || {}), response_timeout_ms: parseInt(e.target.value)}
+                        chatbot_config: {
+                          thread_management: data.chatbot_config?.thread_management ?? true,
+                          auto_initialize: data.chatbot_config?.auto_initialize ?? true,
+                          fallback_enabled: data.chatbot_config?.fallback_enabled ?? true,
+                          max_conversation_length: data.chatbot_config?.max_conversation_length ?? 50,
+                          assistant_id: data.chatbot_config?.assistant_id,
+                          response_timeout_ms: parseInt(e.target.value)
+                        }
                       })}
                       className="w-full px-4 py-3 bg-black/30 border border-gray-600 rounded-lg text-white focus:border-purple-500 focus:outline-none"
                     />
@@ -678,7 +692,14 @@ export default function AIProvidersAdmin() {
                       value={data.chatbot_config?.max_conversation_length || 50}
                       onChange={(e) => setData({
                         ...data,
-                        chatbot_config: {...(data.chatbot_config || {}), max_conversation_length: parseInt(e.target.value)}
+                        chatbot_config: {
+                          thread_management: data.chatbot_config?.thread_management ?? true,
+                          auto_initialize: data.chatbot_config?.auto_initialize ?? true,
+                          fallback_enabled: data.chatbot_config?.fallback_enabled ?? true,
+                          response_timeout_ms: data.chatbot_config?.response_timeout_ms ?? 30000,
+                          assistant_id: data.chatbot_config?.assistant_id,
+                          max_conversation_length: parseInt(e.target.value)
+                        }
                       })}
                       className="w-full px-4 py-3 bg-black/30 border border-gray-600 rounded-lg text-white focus:border-purple-500 focus:outline-none"
                     />
@@ -693,7 +714,14 @@ export default function AIProvidersAdmin() {
                         checked={data.chatbot_config?.thread_management ?? true}
                         onChange={(e) => setData({
                           ...data,
-                          chatbot_config: {...(data.chatbot_config || {}), thread_management: e.target.checked}
+                          chatbot_config: {
+                            auto_initialize: data.chatbot_config?.auto_initialize ?? true,
+                            fallback_enabled: data.chatbot_config?.fallback_enabled ?? true,
+                            max_conversation_length: data.chatbot_config?.max_conversation_length ?? 50,
+                            response_timeout_ms: data.chatbot_config?.response_timeout_ms ?? 30000,
+                            assistant_id: data.chatbot_config?.assistant_id,
+                            thread_management: e.target.checked
+                          }
                         })}
                         className="mr-3"
                       />
@@ -709,7 +737,14 @@ export default function AIProvidersAdmin() {
                         checked={data.chatbot_config?.auto_initialize ?? true}
                         onChange={(e) => setData({
                           ...data,
-                          chatbot_config: {...(data.chatbot_config || {}), auto_initialize: e.target.checked}
+                          chatbot_config: {
+                            thread_management: data.chatbot_config?.thread_management ?? true,
+                            fallback_enabled: data.chatbot_config?.fallback_enabled ?? true,
+                            max_conversation_length: data.chatbot_config?.max_conversation_length ?? 50,
+                            response_timeout_ms: data.chatbot_config?.response_timeout_ms ?? 30000,
+                            assistant_id: data.chatbot_config?.assistant_id,
+                            auto_initialize: e.target.checked
+                          }
                         })}
                         className="mr-3"
                       />
@@ -725,7 +760,14 @@ export default function AIProvidersAdmin() {
                         checked={data.chatbot_config?.fallback_enabled ?? true}
                         onChange={(e) => setData({
                           ...data,
-                          chatbot_config: {...(data.chatbot_config || {}), fallback_enabled: e.target.checked}
+                          chatbot_config: {
+                            thread_management: data.chatbot_config?.thread_management ?? true,
+                            auto_initialize: data.chatbot_config?.auto_initialize ?? true,
+                            max_conversation_length: data.chatbot_config?.max_conversation_length ?? 50,
+                            response_timeout_ms: data.chatbot_config?.response_timeout_ms ?? 30000,
+                            assistant_id: data.chatbot_config?.assistant_id,
+                            fallback_enabled: e.target.checked
+                          }
                         })}
                         className="mr-3"
                       />
