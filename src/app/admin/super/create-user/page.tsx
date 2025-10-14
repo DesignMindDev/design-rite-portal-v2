@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
 import Link from 'next/link';
@@ -9,7 +9,7 @@ import { toast } from 'sonner';
 
 export default function CreateUserPage() {
   const router = useRouter();
-  const { isEmployee, loading: authLoading } = useAuth();
+  const { userRole, loading: authLoading } = useAuth();
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     email: '',
@@ -19,9 +19,51 @@ export default function CreateUserPage() {
     role: 'user' as 'super_admin' | 'admin' | 'manager' | 'developer' | 'contractor' | 'user'
   });
 
-  // Redirect if not employee
-  if (!authLoading && !isEmployee) {
-    router.push('/dashboard');
+  // Password strength calculation
+  const getPasswordStrength = (password: string) => {
+    let strength = 0;
+    if (password.length >= 12) strength++;
+    if (password.length >= 8) strength++;
+    if (/[A-Z]/.test(password)) strength++;
+    if (/[a-z]/.test(password)) strength++;
+    if (/[0-9]/.test(password)) strength++;
+    if (/[^A-Za-z0-9]/.test(password)) strength++;
+
+    if (strength <= 2) {
+      return { score: strength, label: 'Weak', color: 'red', percentage: 33 };
+    } else if (strength <= 4) {
+      return { score: strength, label: 'Medium', color: 'yellow', percentage: 66 };
+    } else {
+      return { score: strength, label: 'Strong', color: 'green', percentage: 100 };
+    }
+  };
+
+  const passwordStrength = formData.password ? getPasswordStrength(formData.password) : null;
+
+  // Check if user is super_admin
+  const isSuperAdmin = userRole?.role === 'super_admin';
+
+  // Redirect if not super_admin
+  useEffect(() => {
+    if (!authLoading && !isSuperAdmin) {
+      router.push('/dashboard');
+    }
+  }, [authLoading, isSuperAdmin, router]);
+
+  // Show loading while checking auth
+  if (authLoading) {
+    return (
+      <div className="min-h-screen bg-[#0A0A0A] flex items-center justify-center">
+        <div className="text-center">
+          <Loader2 className="w-12 h-12 animate-spin text-purple-400 mx-auto mb-4" />
+          <p className="text-gray-400">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Don't render if not super_admin
+  if (!isSuperAdmin) {
     return null;
   }
 
@@ -153,7 +195,60 @@ export default function CreateUserPage() {
                 className="w-full bg-black border border-purple-600/30 rounded-lg px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-purple-400 transition-colors"
                 placeholder="Minimum 8 characters"
               />
-              <p className="text-xs text-gray-500 mt-1">User will be able to change this password after first login</p>
+
+              {/* Password Strength Indicator */}
+              {passwordStrength && (
+                <div className="mt-3 space-y-2">
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="text-gray-400">Password Strength:</span>
+                    <span className={`font-semibold ${
+                      passwordStrength.color === 'red' ? 'text-red-400' :
+                      passwordStrength.color === 'yellow' ? 'text-yellow-400' :
+                      'text-green-400'
+                    }`}>
+                      {passwordStrength.label}
+                    </span>
+                  </div>
+                  <div className="w-full h-2 bg-gray-700 rounded-full overflow-hidden">
+                    <div
+                      className={`h-full transition-all duration-300 ${
+                        passwordStrength.color === 'red' ? 'bg-red-500' :
+                        passwordStrength.color === 'yellow' ? 'bg-yellow-500' :
+                        'bg-green-500'
+                      }`}
+                      style={{ width: `${passwordStrength.percentage}%` }}
+                    />
+                  </div>
+                  <div className="text-xs text-gray-500 space-y-1">
+                    <p className="flex items-center gap-2">
+                      <span className={formData.password.length >= 12 ? 'text-green-400' : 'text-gray-500'}>
+                        {formData.password.length >= 12 ? '✓' : '○'}
+                      </span>
+                      12+ characters
+                    </p>
+                    <p className="flex items-center gap-2">
+                      <span className={/[A-Z]/.test(formData.password) && /[a-z]/.test(formData.password) ? 'text-green-400' : 'text-gray-500'}>
+                        {/[A-Z]/.test(formData.password) && /[a-z]/.test(formData.password) ? '✓' : '○'}
+                      </span>
+                      Upper & lowercase letters
+                    </p>
+                    <p className="flex items-center gap-2">
+                      <span className={/[0-9]/.test(formData.password) ? 'text-green-400' : 'text-gray-500'}>
+                        {/[0-9]/.test(formData.password) ? '✓' : '○'}
+                      </span>
+                      Numbers
+                    </p>
+                    <p className="flex items-center gap-2">
+                      <span className={/[^A-Za-z0-9]/.test(formData.password) ? 'text-green-400' : 'text-gray-500'}>
+                        {/[^A-Za-z0-9]/.test(formData.password) ? '✓' : '○'}
+                      </span>
+                      Special characters (!@#$%...)
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              <p className="text-xs text-gray-500 mt-2">User will be able to change this password after first login</p>
             </div>
 
             {/* Full Name */}

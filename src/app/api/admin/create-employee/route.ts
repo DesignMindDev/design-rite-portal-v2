@@ -12,8 +12,13 @@ const supabaseServiceKey = process.env.SUPABASE_SERVICE_KEY || process.env.NEXT_
  * Allows ONLY super_admins to create new users with any role
  *
  * Security: Verifies requester is super_admin before allowing user creation
+ * Audit: Logs all user creation attempts with full context
  */
 export async function POST(request: NextRequest) {
+  // Track audit log data
+  let adminId: string | null = null;
+  let targetEmail: string | null = null;
+
   try {
     // Create admin client with service role key
     const supabase = createClient(supabaseUrl, supabaseServiceKey, {
@@ -66,9 +71,15 @@ export async function POST(request: NextRequest) {
 
     console.log('[CreateEmployee] Request authorized by super_admin:', requestingUser.id);
 
+    // Store admin ID for audit logging
+    adminId = requestingUser.id;
+
     // Get request body
     const body = await request.json();
     const { email, password, full_name, company, role } = body;
+
+    // Store target email for audit logging
+    targetEmail = email;
 
     // Validation
     if (!email || !password || !full_name || !role) {
@@ -108,6 +119,23 @@ export async function POST(request: NextRequest) {
 
     if (createUserError) {
       console.error('[CreateEmployee] Auth error:', createUserError);
+
+      // AUDIT LOG: Record auth creation failure
+      const ipAddress = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'unknown';
+      const userAgent = request.headers.get('user-agent') || 'unknown';
+
+      await supabase.from('admin_actions').insert({
+        admin_id: adminId,
+        action: 'create_user',
+        target_id: null,
+        target_email: targetEmail,
+        details: { role, full_name, company },
+        ip_address: ipAddress,
+        user_agent: userAgent,
+        status: 'failure',
+        error_message: createUserError.message || 'Failed to create auth user'
+      });
+
       return NextResponse.json(
         { error: createUserError.message || 'Failed to create auth user' },
         { status: 500 }
@@ -124,8 +152,56 @@ export async function POST(request: NextRequest) {
     const userId = authData.user.id;
     console.log('[CreateEmployee] Auth user created:', userId);
 
-    // Step 2: Wait a moment for trigger to run
-    await new Promise(resolve => setTimeout(resolve, 1000));
+    // Step 2: Wait for trigger to create profile with retry logic
+    let profileCreated = false;
+    let retryCount = 0;
+    const maxRetries = 3;
+
+    for (let i = 0; i < maxRetries; i++) {
+      await new Promise(resolve => setTimeout(resolve, 1000));
+
+      const { data: profileCheck } = await supabase
+        .from('profiles')
+        .select('id')
+        .eq('id', userId)
+        .single();
+
+      if (profileCheck) {
+        profileCreated = true;
+        retryCount = i + 1;
+        console.log(`[CreateEmployee] Profile created after ${retryCount} attempt(s)`);
+        break;
+      }
+
+      console.log(`[CreateEmployee] Profile not found, retry ${i + 1}/${maxRetries}...`);
+    }
+
+    if (!profileCreated) {
+      console.error('[CreateEmployee] Profile creation failed after retries');
+
+      // Clean up: Delete the auth user since trigger failed
+      await supabase.auth.admin.deleteUser(userId);
+
+      const ipAddress = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'unknown';
+      const userAgent = request.headers.get('user-agent') || 'unknown';
+
+      await supabase.from('admin_actions').insert({
+        admin_id: adminId,
+        action: 'create_user',
+        target_id: null,
+        target_email: email,
+        details: { role, full_name, company, note: 'Trigger failed to create profile' },
+        ip_address: ipAddress,
+        user_agent: userAgent,
+        status: 'failure',
+        error_message: 'Profile creation failed after 3 retries - auth user deleted'
+      });
+
+      return NextResponse.json(
+        { error: 'Profile creation failed - database trigger may not be running correctly' },
+        { status: 500 }
+      );
+    }
 
     // Step 3: Update the role (trigger creates default 'user' role)
     const { error: roleError } = await supabase
@@ -135,6 +211,29 @@ export async function POST(request: NextRequest) {
 
     if (roleError) {
       console.error('[CreateEmployee] Role update error:', roleError);
+
+      // AUDIT LOG: Record partial success (user created but role not updated)
+      const ipAddress = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'unknown';
+      const userAgent = request.headers.get('user-agent') || 'unknown';
+
+      await supabase.from('admin_actions').insert({
+        admin_id: adminId,
+        action: 'create_user',
+        target_id: userId,
+        target_email: email,
+        details: {
+          full_name,
+          company: company || null,
+          requested_role: role,
+          actual_role: 'user',
+          note: 'User created but role update failed'
+        },
+        ip_address: ipAddress,
+        user_agent: userAgent,
+        status: 'partial',
+        error_message: roleError.message || 'Failed to update user role'
+      });
+
       // Don't fail the whole operation if role update fails
       // The user exists, just with wrong role
     }
@@ -178,6 +277,28 @@ export async function POST(request: NextRequest) {
       hasSubscription: !!subscription
     });
 
+    // AUDIT LOG: Record successful user creation
+    const ipAddress = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'unknown';
+    const userAgent = request.headers.get('user-agent') || 'unknown';
+
+    await supabase.from('admin_actions').insert({
+      admin_id: adminId,
+      action: 'create_user',
+      target_id: userId,
+      target_email: email,
+      details: {
+        full_name,
+        company: company || null,
+        role,
+        profile_created: !!profile,
+        role_created: !!userRole,
+        subscription_created: !!subscription
+      },
+      ip_address: ipAddress,
+      user_agent: userAgent,
+      status: 'success'
+    });
+
     return NextResponse.json({
       success: true,
       message: 'User created successfully',
@@ -193,6 +314,35 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error('[CreateEmployee] Unexpected error:', error);
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+
+    // AUDIT LOG: Record failure if we have admin ID
+    if (adminId) {
+      try {
+        const supabase = createClient(supabaseUrl, supabaseServiceKey, {
+          auth: { autoRefreshToken: false, persistSession: false }
+        });
+
+        const ipAddress = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'unknown';
+        const userAgent = request.headers.get('user-agent') || 'unknown';
+
+        await supabase.from('admin_actions').insert({
+          admin_id: adminId,
+          action: 'create_user',
+          target_id: null,
+          target_email: targetEmail,
+          details: {
+            error_context: 'Unexpected error during user creation'
+          },
+          ip_address: ipAddress,
+          user_agent: userAgent,
+          status: 'failure',
+          error_message: errorMessage
+        });
+      } catch (auditError) {
+        console.error('[CreateEmployee] Failed to log audit entry:', auditError);
+      }
+    }
+
     return NextResponse.json(
       { error: 'Failed to create user', details: errorMessage },
       { status: 500 }
