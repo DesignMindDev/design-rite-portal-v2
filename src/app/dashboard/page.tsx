@@ -185,7 +185,7 @@ export default function DashboardPage() {
                   view analytics, and configure system settings.
                 </p>
                 <Link
-                  href="/transfer-session"
+                  href="/admin"
                   className="inline-flex items-center gap-2 px-4 py-2 bg-white text-purple-600 rounded-lg font-semibold hover:bg-purple-50 transition-colors"
                 >
                   <Shield className="w-4 h-4" />

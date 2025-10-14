@@ -95,10 +95,10 @@ export function useAuth() {
   }, [])
 
   // Wrapper function with timeout protection
-  async function loadUserDataWithTimeout(userId: string, timeoutMs: number = 5000) {
+  async function loadUserDataWithTimeout(userId: string, timeoutMs: number = 15000) {
     const timeoutPromise = new Promise((resolve) => {
       setTimeout(() => {
-        console.warn(`[useAuth] Profile/role query timed out after ${timeoutMs}ms - using defaults`)
+        console.warn(`[useAuth] Profile/role query timeout - continuing to wait for results`)
         resolve('timeout')
       }, timeoutMs)
     })
@@ -109,9 +109,10 @@ export function useAuth() {
     const result = await Promise.race([loadPromise, timeoutPromise])
 
     if (result === 'timeout') {
-      console.warn('[useAuth] Proceeding with default user role (query will complete in background)')
-      // Set sensible defaults if loading times out
-      setUserRole({ role: 'user', domain_override: false })
+      console.warn('[useAuth] Query is taking longer than expected, but NOT setting defaults')
+      console.warn('[useAuth] Waiting for actual query to complete...')
+      // DO NOT set default role - let the actual query complete
+      // The loadUserData promise will continue and eventually call setUserRole
     }
   }
 

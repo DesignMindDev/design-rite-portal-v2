@@ -101,6 +101,54 @@ export default function WelcomePage() {
     }
   }
 
+  // Handle session transfer to V4 admin page
+  const handleAdminPage = async () => {
+    try {
+      console.log('[Portal] Starting V4 admin redirect...')
+      toast.info('Launching Admin Dashboard...', { duration: 1500 })
+
+      if (!user) {
+        console.error('[Portal] No user session found')
+        toast.error('Session not found. Please sign in again.')
+        router.push('/auth')
+        return
+      }
+
+      const { authHelpers } = await import('@/lib/supabase')
+      const session = await authHelpers.getCurrentSession()
+
+      if (!session) {
+        console.error('[Portal] No session found')
+        toast.error('Session not found. Please sign in again.')
+        router.push('/auth')
+        return
+      }
+
+      console.log('[Portal] Session found, encoding tokens for admin...')
+
+      // Encode session tokens in URL hash
+      const authData = {
+        access_token: session.access_token,
+        refresh_token: session.refresh_token
+      }
+      const encodedAuth = encodeURIComponent(JSON.stringify(authData))
+
+      // Redirect to V4 admin page
+      const mainPlatformUrl = process.env.NODE_ENV === 'development'
+        ? 'http://localhost:3000'
+        : 'https://design-rite.com'
+
+      // CRITICAL: Add ?transfer=true so V4 middleware skips auth check
+      const adminUrl = `${mainPlatformUrl}/admin?transfer=true#auth=${encodedAuth}`
+
+      console.log('[Portal] Redirecting to:', adminUrl)
+      window.location.href = adminUrl
+    } catch (error) {
+      console.error('[Portal] Error transferring session to admin:', error)
+      toast.error('Failed to launch admin dashboard. Please try again.')
+    }
+  }
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-purple-50 via-white to-blue-50">
@@ -133,6 +181,14 @@ export default function WelcomePage() {
       action: handleWorkspace,
       badge: 'Popular'
     },
+    ...(isEmployee ? [{
+      title: 'Admin Dashboard',
+      description: 'Manage users, AI providers, analytics, and platform settings',
+      icon: Sparkles,
+      color: 'from-purple-500 to-purple-600',
+      action: () => router.push('/admin'),
+      badge: 'Admin'
+    }] : []),
     {
       title: 'My Portal',
       description: 'Access your documents, tools, and account settings',
