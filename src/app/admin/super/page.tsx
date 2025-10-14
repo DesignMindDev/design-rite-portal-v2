@@ -4,7 +4,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { Users, UserPlus, Shield, Activity, TrendingUp, ArrowLeft } from 'lucide-react';
+import { Users, UserPlus, Shield, Activity, TrendingUp, ArrowLeft, RefreshCw } from 'lucide-react';
 
 interface User {
   id: string;
@@ -210,13 +210,24 @@ export default function UserManagementPage() {
               </div>
             </div>
 
-            <Link
-              href="/admin/super/create-user"
-              className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-3 rounded-lg font-medium transition-all shadow-sm hover:shadow-md"
-            >
-              <UserPlus className="w-5 h-5" />
-              Create New User
-            </Link>
+            <div className="flex items-center gap-3">
+              <button
+                onClick={fetchUsers}
+                disabled={loading}
+                className="flex items-center gap-2 bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-3 rounded-lg font-medium transition-all disabled:opacity-50"
+                title="Refresh user list"
+              >
+                <RefreshCw className={`w-5 h-5 ${loading ? 'animate-spin' : ''}`} />
+                Refresh
+              </button>
+              <Link
+                href="/admin/super/create-user"
+                className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-3 rounded-lg font-medium transition-all shadow-sm hover:shadow-md"
+              >
+                <UserPlus className="w-5 h-5" />
+                Create New User
+              </Link>
+            </div>
           </div>
         </div>
       </div>
