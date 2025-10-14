@@ -30,10 +30,25 @@ export default function UserManagementPage() {
   // Check if user is super_admin
   const isSuperAdmin = userRole?.role === 'super_admin';
 
+  // Debug logging
+  useEffect(() => {
+    console.log('[UserManagement] Auth state:', {
+      authLoading,
+      user: user?.email,
+      userRole: userRole?.role,
+      isSuperAdmin
+    });
+  }, [authLoading, user, userRole, isSuperAdmin]);
+
   // Redirect if not super_admin
   useEffect(() => {
     if (!authLoading && (!user || !isSuperAdmin)) {
-      console.log('[UserManagement] Access denied - not super_admin:', { user: !!user, role: userRole?.role });
+      console.log('[UserManagement] ⚠️ ACCESS DENIED:', {
+        user: user?.email,
+        userRole: userRole?.role,
+        isSuperAdmin,
+        redirecting: 'to /dashboard'
+      });
       router.push('/dashboard');
     }
   }, [user, authLoading, isSuperAdmin, userRole, router]);
