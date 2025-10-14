@@ -96,7 +96,7 @@ export async function POST(request: NextRequest) {
     console.log('[CreateEmployee] Creating user:', { email, full_name, role });
 
     // Step 1: Create Supabase Auth user
-    const { data: authData, error: authError } = await supabase.auth.admin.createUser({
+    const { data: authData, error: createUserError } = await supabase.auth.admin.createUser({
       email,
       password,
       email_confirm: true, // Auto-confirm email
@@ -106,10 +106,10 @@ export async function POST(request: NextRequest) {
       }
     });
 
-    if (authError) {
-      console.error('[CreateEmployee] Auth error:', authError);
+    if (createUserError) {
+      console.error('[CreateEmployee] Auth error:', createUserError);
       return NextResponse.json(
-        { error: authError.message || 'Failed to create auth user' },
+        { error: createUserError.message || 'Failed to create auth user' },
         { status: 500 }
       );
     }
