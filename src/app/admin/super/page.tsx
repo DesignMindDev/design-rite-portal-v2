@@ -40,16 +40,19 @@ export default function UserManagementPage() {
     });
   }, [authLoading, user, userRole, isSuperAdmin]);
 
-  // Redirect if not super_admin
+  // Redirect if not super_admin - but ONLY after role is loaded
   useEffect(() => {
-    if (!authLoading && (!user || !isSuperAdmin)) {
-      console.log('[UserManagement] ⚠️ ACCESS DENIED:', {
-        user: user?.email,
-        userRole: userRole?.role,
-        isSuperAdmin,
-        redirecting: 'to /dashboard'
-      });
-      router.push('/dashboard');
+    // Wait for both auth and role to finish loading
+    if (!authLoading && userRole) {
+      if (!user || !isSuperAdmin) {
+        console.log('[UserManagement] ⚠️ ACCESS DENIED:', {
+          user: user?.email,
+          userRole: userRole?.role,
+          isSuperAdmin,
+          redirecting: 'to /dashboard'
+        });
+        router.push('/dashboard');
+      }
     }
   }, [user, authLoading, isSuperAdmin, userRole, router]);
 
@@ -164,7 +167,8 @@ export default function UserManagementPage() {
     ).join(' ');
   };
 
-  if (authLoading || (user && !userRole)) {
+  // Show loading while auth or role is loading
+  if (authLoading || !userRole) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-gray-50">
         <div className="text-center">
@@ -175,6 +179,7 @@ export default function UserManagementPage() {
     );
   }
 
+  // Only render if user is super_admin
   if (!user || !isSuperAdmin) {
     return null;
   }

@@ -43,15 +43,16 @@ export default function CreateUserPage() {
   // Check if user is super_admin
   const isSuperAdmin = userRole?.role === 'super_admin';
 
-  // Redirect if not super_admin
+  // Redirect if not super_admin - but ONLY after role is loaded
   useEffect(() => {
-    if (!authLoading && !isSuperAdmin) {
+    if (!authLoading && userRole && !isSuperAdmin) {
+      console.log('[CreateUser] Access denied, redirecting to dashboard');
       router.push('/dashboard');
     }
-  }, [authLoading, isSuperAdmin, router]);
+  }, [authLoading, userRole, isSuperAdmin, router]);
 
-  // Show loading while checking auth
-  if (authLoading) {
+  // Show loading while auth or role is loading
+  if (authLoading || !userRole) {
     return (
       <div className="min-h-screen bg-[#0A0A0A] flex items-center justify-center">
         <div className="text-center">
