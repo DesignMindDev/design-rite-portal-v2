@@ -46,17 +46,17 @@ export async function POST(request: NextRequest) {
     }
 
     // Check if the requesting user is a super_admin
-    const { data: requesterRole, error: roleError } = await supabase
+    const { data: requesterRole, error: requesterRoleError } = await supabase
       .from('user_roles')
       .select('role')
       .eq('user_id', requestingUser.id)
       .single();
 
-    if (roleError || requesterRole?.role !== 'super_admin') {
+    if (requesterRoleError || requesterRole?.role !== 'super_admin') {
       console.error('[CreateEmployee] Insufficient permissions:', {
         userId: requestingUser.id,
         role: requesterRole?.role,
-        error: roleError
+        error: requesterRoleError
       });
       return NextResponse.json(
         { error: 'Forbidden - Only super_admins can create users' },
