@@ -13,15 +13,12 @@ import {
   Palette,
   CreditCard,
   User,
-  Shield,
-  ExternalLink,
   LogOut,
   ChevronLeft,
   ChevronRight,
   Menu,
   X,
-  ArrowLeft,
-  UserCog
+  ArrowLeft
 } from 'lucide-react'
 import { toast } from 'sonner'
 
@@ -54,40 +51,6 @@ export default function Sidebar() {
     { path: '/profile', label: 'Profile & Settings', icon: User },
   ]
 
-  // Check if user is super_admin
-  const isSuperAdmin = userRole?.role === 'super_admin'
-
-  // Employee-only items
-  const employeeItems = isEmployee
-    ? [
-        {
-          type: 'button' as const,
-          label: 'Admin Dashboard',
-          icon: Shield,
-          badge: 'Admin',
-          action: () => {
-            console.log('[Sidebar] Admin Dashboard button clicked - navigating to /admin')
-            router.push('/admin')
-          }
-        }
-      ]
-    : []
-
-  // Super Admin-only items
-  const superAdminItems = isSuperAdmin
-    ? [
-        {
-          type: 'button' as const,
-          label: 'User Management',
-          icon: UserCog,
-          badge: 'Super Admin',
-          action: () => {
-            console.log('[Sidebar] User Management button clicked - navigating to /admin/super')
-            router.push('/admin/super')
-          }
-        }
-      ]
-    : []
 
   const NavContent = () => (
     <>
@@ -184,87 +147,6 @@ export default function Sidebar() {
           )
         })}
 
-        {/* Employee Section */}
-        {employeeItems.length > 0 && (
-          <>
-            <div className={`pt-4 pb-2 ${collapsed ? 'border-t border-gray-200' : ''}`}>
-              {!collapsed && (
-                <p className="px-4 text-xs font-semibold text-gray-400 uppercase tracking-wider">
-                  Employee Access
-                </p>
-              )}
-            </div>
-            {employeeItems.map((item, index) => (
-              <button
-                key={index}
-                onClick={() => {
-                  item.action()
-                  setMobileOpen(false)
-                }}
-                className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all text-gray-700 hover:bg-purple-50 hover:text-purple-700 ${
-                  collapsed ? 'justify-center px-2' : ''
-                }`}
-                title={collapsed ? item.label : undefined}
-              >
-                <item.icon className="w-5 h-5 flex-shrink-0" />
-                {!collapsed && (
-                  <>
-                    <span className="flex-1 font-medium text-sm">{item.label}</span>
-                    <div className="flex items-center gap-2">
-                      {item.badge && (
-                        <span className="px-2 py-0.5 bg-purple-100 text-purple-700 text-xs font-semibold rounded">
-                          {item.badge}
-                        </span>
-                      )}
-                      <ExternalLink className="w-4 h-4" />
-                    </div>
-                  </>
-                )}
-              </button>
-            ))}
-          </>
-        )}
-
-        {/* Super Admin Section */}
-        {superAdminItems.length > 0 && (
-          <>
-            <div className={`pt-4 pb-2 ${collapsed ? 'border-t border-gray-200' : ''}`}>
-              {!collapsed && (
-                <p className="px-4 text-xs font-semibold text-red-400 uppercase tracking-wider">
-                  Super Admin Only
-                </p>
-              )}
-            </div>
-            {superAdminItems.map((item, index) => (
-              <button
-                key={index}
-                onClick={() => {
-                  item.action()
-                  setMobileOpen(false)
-                }}
-                className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all text-gray-700 hover:bg-red-50 hover:text-red-700 ${
-                  collapsed ? 'justify-center px-2' : ''
-                }`}
-                title={collapsed ? item.label : undefined}
-              >
-                <item.icon className="w-5 h-5 flex-shrink-0" />
-                {!collapsed && (
-                  <>
-                    <span className="flex-1 font-medium text-sm">{item.label}</span>
-                    <div className="flex items-center gap-2">
-                      {item.badge && (
-                        <span className="px-2 py-0.5 bg-red-100 text-red-700 text-xs font-semibold rounded">
-                          {item.badge}
-                        </span>
-                      )}
-                      <ExternalLink className="w-4 h-4" />
-                    </div>
-                  </>
-                )}
-              </button>
-            ))}
-          </>
-        )}
       </nav>
 
       {/* Sign Out Button */}

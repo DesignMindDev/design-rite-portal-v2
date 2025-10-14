@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { useAuth } from '@/hooks/useAuth'
 import { useInactivityTimeout } from '@/hooks/useInactivityTimeout'
 import Sidebar from './Sidebar'
+import AdminHeader from './AdminHeader'
 import InactivityWarningModal from './InactivityWarningModal'
 import { Loader2 } from 'lucide-react'
 import { toast } from 'sonner'
@@ -78,9 +79,12 @@ export default function ProtectedLayout({ children }: ProtectedLayoutProps) {
     <>
       <div className="flex min-h-screen bg-gray-50">
         <Sidebar />
-        <main className="flex-1 overflow-x-hidden">
-          {children}
-        </main>
+        <div className="flex-1 flex flex-col overflow-x-hidden">
+          <AdminHeader />
+          <main className="flex-1">
+            {children}
+          </main>
+        </div>
       </div>
 
       {/* Inactivity warning modal */}
