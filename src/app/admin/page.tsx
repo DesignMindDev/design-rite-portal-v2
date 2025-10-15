@@ -58,6 +58,14 @@ export default function AdminDashboardPage() {
 
   const adminSections = [
     {
+      title: 'Platform Dashboard',
+      description: 'Real-time metrics, user activity, and system statistics',
+      icon: Database,
+      href: '/admin/dashboard',
+      color: 'from-cyan-500 to-cyan-600',
+      status: 'active'
+    },
+    {
       title: 'AI Providers',
       description: 'Manage AI models, API keys, and provider configurations',
       icon: Zap,
