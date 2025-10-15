@@ -17,6 +17,8 @@ interface User {
   role: string;
   company: string;
   created_at: string;
+  last_login: string | null;
+  status: string;
 }
 
 interface OperationsData {
@@ -148,76 +150,48 @@ export default function UserManagementPage() {
     try {
       setLoading(true);
 
-      // Use the authenticated user's session instead of creating new client
-      const { supabase: authenticatedSupabase } = await import('@/lib/supabase');
+      // Get the authenticated session
+      const { supabase } = await import('@/lib/supabase');
+      const { data: { session } } = await supabase.auth.getSession();
 
-      console.log('[UserManagement] Fetching users...');
-
-      // FIXED: Fetch profiles and roles separately, then combine in memory
-      // This avoids the JOIN error between profiles and user_roles
-
-      // Step 1: Fetch all profiles
-      const { data: profiles, error: profilesError } = await authenticatedSupabase
-        .from('profiles')
-        .select('id, email, full_name, company, created_at')
-        .order('created_at', { ascending: false });
-
-      if (profilesError) {
-        console.error('[UserManagement] Error fetching profiles:', profilesError);
+      if (!session) {
+        console.error('[UserManagement] No session found');
+        toast.error('Session expired. Please sign in again.');
         return;
       }
 
-      console.log('[UserManagement] Fetched profiles:', profiles?.length || 0);
+      console.log('[UserManagement] Fetching users via API...');
 
-      // Step 2: Fetch all user roles
-      const { data: userRoles, error: rolesError } = await authenticatedSupabase
-        .from('user_roles')
-        .select('user_id, role');
+      // Call the admin users API endpoint
+      const response = await fetch('/api/admin/users', {
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`
+        }
+      });
 
-      if (rolesError) {
-        console.error('[UserManagement] Error fetching roles:', rolesError);
-        // Continue even if roles fail - we'll use 'user' as default
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to fetch users');
       }
 
-      console.log('[UserManagement] Fetched roles:', userRoles?.length || 0);
+      const result = await response.json();
 
-      // Step 3: Combine profiles with their roles in memory
-      const processedUsers: User[] = (profiles || []).map((profile: any) => {
-        const userRole = userRoles?.find(r => r.user_id === profile.id);
-
-        return {
-          id: profile.id,
-          email: profile.email,
-          full_name: profile.full_name || 'N/A',
-          role: userRole?.role || 'user',
-          company: profile.company || 'N/A',
-          created_at: profile.created_at
-        };
+      console.log('[UserManagement] API response:', {
+        usersCount: result.users?.length || 0,
+        stats: result.stats
       });
 
-      console.log('[UserManagement] Processed users:', processedUsers.length);
-
-      setUsers(processedUsers);
-
-      // Calculate stats
-      const employeeRoles = ['super_admin', 'admin', 'manager', 'developer', 'contractor'];
-      const employeeCount = processedUsers.filter(u => employeeRoles.includes(u.role)).length;
-
-      setStats({
-        totalUsers: processedUsers.length,
-        employees: employeeCount,
-        customers: processedUsers.length - employeeCount,
-        activeToday: 0 // We'll skip activity tracking for now
-      });
-
-      console.log('[UserManagement] Stats calculated:', {
-        totalUsers: processedUsers.length,
-        employees: employeeCount,
-        customers: processedUsers.length - employeeCount
+      setUsers(result.users || []);
+      setStats(result.stats || {
+        totalUsers: 0,
+        employees: 0,
+        customers: 0,
+        activeToday: 0
       });
 
     } catch (error) {
       console.error('[UserManagement] Unexpected error:', error);
+      toast.error(error instanceof Error ? error.message : 'Failed to fetch users');
     } finally {
       setLoading(false);
     }
@@ -766,6 +740,12 @@ export default function UserManagementPage() {
                       Company
                     </th>
                     <th className="text-left px-6 py-3 text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                      Status
+                    </th>
+                    <th className="text-left px-6 py-3 text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                      Last Login
+                    </th>
+                    <th className="text-left px-6 py-3 text-xs font-semibold text-gray-600 uppercase tracking-wider">
                       Joined
                     </th>
                     <th className="text-right px-6 py-3 text-xs font-semibold text-gray-600 uppercase tracking-wider">
@@ -789,6 +769,20 @@ export default function UserManagementPage() {
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="text-gray-600">{userItem.company}</div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+                          userItem.status === 'active'
+                            ? 'bg-green-100 text-green-700'
+                            : 'bg-gray-100 text-gray-600'
+                        }`}>
+                          {userItem.status}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="text-gray-600 text-sm">
+                          {userItem.last_login ? new Date(userItem.last_login).toLocaleDateString() : 'Never'}
+                        </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="text-gray-600 text-sm">
