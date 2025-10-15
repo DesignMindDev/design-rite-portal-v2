@@ -4,7 +4,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { Users, UserPlus, Shield, Activity, TrendingUp, ArrowLeft, RefreshCw, Edit, Key, Trash2, X, Save, DollarSign, Cpu, Clock, AlertCircle, CheckCircle, Box, MessageSquare, Calendar, ChevronDown, ChevronUp } from 'lucide-react';
+import { Users, UserPlus, Shield, Activity, TrendingUp, ArrowLeft, RefreshCw, Edit, Key, Trash2, X, Save, DollarSign, Cpu, Clock, AlertCircle, CheckCircle, Box, MessageSquare, Calendar, ChevronDown, ChevronUp, Settings, LayoutDashboard } from 'lucide-react';
 import { toast } from 'sonner';
 import MetricCard from '@/components/dashboard/MetricCard';
 import ActivityFeed from '@/components/dashboard/ActivityFeed';
@@ -101,6 +101,9 @@ export default function UserManagementPage() {
   const [operationsLoading, setOperationsLoading] = useState(false);
   const [operationsExpanded, setOperationsExpanded] = useState(true);
   const [timeRange, setTimeRange] = useState<'24h' | '7d' | '30d'>('24h');
+
+  // Tab state
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'users' | 'settings'>('users');
 
   // Check if user is super_admin
   const isSuperAdmin = userRole?.role === 'super_admin';
@@ -356,39 +359,86 @@ export default function UserManagementPage() {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
               <div className="w-14 h-14 bg-gradient-to-br from-indigo-500 to-indigo-600 rounded-xl flex items-center justify-center">
-                <Users className="w-7 h-7 text-white" />
+                <Shield className="w-7 h-7 text-white" />
               </div>
               <div>
-                <h1 className="text-3xl font-bold text-gray-900">User Management</h1>
-                <p className="text-gray-600">Manage employees and customers</p>
+                <h1 className="text-3xl font-bold text-gray-900">Super Admin</h1>
+                <p className="text-gray-600">Platform management and administration</p>
               </div>
             </div>
 
             <div className="flex items-center gap-3">
-              <button
-                onClick={fetchUsers}
-                disabled={loading}
-                className="flex items-center gap-2 bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-3 rounded-lg font-medium transition-all disabled:opacity-50"
-                title="Refresh user list"
-              >
-                <RefreshCw className={`w-5 h-5 ${loading ? 'animate-spin' : ''}`} />
-                Refresh
-              </button>
-              <Link
-                href="/admin/super/create-user"
-                className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-3 rounded-lg font-medium transition-all shadow-sm hover:shadow-md"
-              >
-                <UserPlus className="w-5 h-5" />
-                Create New User
-              </Link>
+              {activeTab === 'users' && (
+                <>
+                  <button
+                    onClick={fetchUsers}
+                    disabled={loading}
+                    className="flex items-center gap-2 bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-3 rounded-lg font-medium transition-all disabled:opacity-50"
+                    title="Refresh user list"
+                  >
+                    <RefreshCw className={`w-5 h-5 ${loading ? 'animate-spin' : ''}`} />
+                    Refresh
+                  </button>
+                  <Link
+                    href="/admin/super/create-user"
+                    className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-3 rounded-lg font-medium transition-all shadow-sm hover:shadow-md"
+                  >
+                    <UserPlus className="w-5 h-5" />
+                    Create New User
+                  </Link>
+                </>
+              )}
             </div>
+          </div>
+        </div>
+
+        {/* Tab Navigation */}
+        <div className="border-b border-gray-200 bg-white">
+          <div className="max-w-7xl mx-auto px-8">
+            <nav className="flex gap-8" aria-label="Tabs">
+              <button
+                onClick={() => setActiveTab('dashboard')}
+                className={`flex items-center gap-2 py-4 px-1 border-b-2 font-medium text-sm transition-colors ${
+                  activeTab === 'dashboard'
+                    ? 'border-indigo-500 text-indigo-600'
+                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                }`}
+              >
+                <LayoutDashboard className="w-5 h-5" />
+                Dashboard
+              </button>
+              <button
+                onClick={() => setActiveTab('users')}
+                className={`flex items-center gap-2 py-4 px-1 border-b-2 font-medium text-sm transition-colors ${
+                  activeTab === 'users'
+                    ? 'border-indigo-500 text-indigo-600'
+                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                }`}
+              >
+                <Users className="w-5 h-5" />
+                User Management
+              </button>
+              <button
+                onClick={() => setActiveTab('settings')}
+                className={`flex items-center gap-2 py-4 px-1 border-b-2 font-medium text-sm transition-colors ${
+                  activeTab === 'settings'
+                    ? 'border-indigo-500 text-indigo-600'
+                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                }`}
+              >
+                <Settings className="w-5 h-5" />
+                Settings
+              </button>
+            </nav>
           </div>
         </div>
       </div>
 
       <div className="max-w-7xl mx-auto px-8 py-8">
-        {/* Operations Dashboard Section */}
-        <div className="mb-8">
+        {/* Dashboard Tab Content */}
+        {activeTab === 'dashboard' && (
+          <div className="mb-8">
+            {/* Operations Dashboard Section */}
           <button
             onClick={() => setOperationsExpanded(!operationsExpanded)}
             className="w-full bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white rounded-xl p-6 shadow-lg transition-all duration-300 flex items-center justify-between"
@@ -646,9 +696,13 @@ export default function UserManagementPage() {
               ) : null}
             </div>
           )}
-        </div>
+          </div>
+        )}
 
-        {/* Quick Stats */}
+        {/* User Management Tab Content */}
+        {activeTab === 'users' && (
+          <>
+            {/* Quick Stats */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
           <div className="bg-white rounded-xl p-6 border border-gray-200 shadow-sm">
             <div className="flex items-center gap-4">
@@ -821,6 +875,30 @@ export default function UserManagementPage() {
             </div>
           )}
         </div>
+          </>
+        )}
+
+        {/* Settings Tab Content */}
+        {activeTab === 'settings' && (
+          <div className="max-w-4xl mx-auto">
+            <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-8">
+              <div className="text-center py-12">
+                <Settings className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+                <h3 className="text-xl font-semibold text-gray-900 mb-2">
+                  Dashboard Customization
+                </h3>
+                <p className="text-gray-600 mb-6">
+                  Customize your dashboard layout, widgets, and preferences.
+                </p>
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 max-w-2xl mx-auto">
+                  <p className="text-sm text-blue-900">
+                    <strong>Coming Soon:</strong> Dashboard customization features including widget selection, layout preferences, and theme options.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Edit User Modal */}
