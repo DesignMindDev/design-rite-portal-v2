@@ -17,14 +17,40 @@ export default function ResetPasswordPage() {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    // Check if we have a valid session from the reset link
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (!session) {
+    // Check if there's a hash in the URL (password reset token)
+    const hashParams = new URLSearchParams(window.location.hash.substring(1))
+    const hasToken = hashParams.has('access_token') || hashParams.has('token') || hashParams.has('type')
+
+    console.log('[Reset Password] Full URL:', window.location.href)
+    console.log('[Reset Password] URL hash:', window.location.hash)
+    console.log('[Reset Password] Has token:', hasToken)
+    console.log('[Reset Password] Hash params:', Object.fromEntries(hashParams.entries()))
+
+    // If there's a token in the URL, Supabase will process it automatically
+    // Wait a bit for Supabase to process the token before checking session
+    const checkSession = async () => {
+      // Give Supabase time to process the token from URL
+      if (hasToken) {
+        console.log('[Reset Password] Waiting 1 second for Supabase to process token...')
+        await new Promise(resolve => setTimeout(resolve, 1000))
+      }
+
+      const { data: { session }, error } = await supabase.auth.getSession()
+      console.log('[Reset Password] Session after wait:', session ? 'EXISTS' : 'NO SESSION')
+      console.log('[Reset Password] Session error:', error)
+
+      // Only redirect if there's no token in URL and no session
+      if (!session && !hasToken) {
+        console.log('[Reset Password] No session and no token - redirecting to forgot-password')
         toast.error('Invalid or expired reset link')
         router.push('/forgot-password')
+      } else {
+        console.log('[Reset Password] Valid - showing form')
       }
       setLoading(false)
-    })
+    }
+
+    checkSession()
   }, [router])
 
   const handleSubmit = async (e: React.FormEvent) => {

@@ -236,7 +236,7 @@ BEGIN
       'trial',
       'trialing',
       NOW(),
-      NOW() + INTERVAL '14 days'
+      NOW() + INTERVAL '7 days'
     );
   END IF;
 
@@ -274,7 +274,7 @@ SELECT
   END,
   CASE
     WHEN ur.role IN ('super_admin', 'admin', 'manager', 'developer', 'contractor') THEN NULL
-    ELSE NOW() + INTERVAL '14 days'
+    ELSE NOW() + INTERVAL '7 days'
   END
 FROM auth.users u
 LEFT JOIN public.user_roles ur ON u.id = ur.user_id

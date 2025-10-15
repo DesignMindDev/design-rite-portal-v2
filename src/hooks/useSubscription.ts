@@ -148,6 +148,100 @@ export function useSubscription() {
     return currentCount < subscription.max_documents
   }
 
+  // Get assessment usage statistics
+  async function getAssessmentUsage(): Promise<{
+    used: number
+    limit: number
+    isAtLimit: boolean
+    isNearLimit: boolean
+  }> {
+    if (!user) return { used: 0, limit: 10, isAtLimit: false, isNearLimit: false }
+
+    try {
+      const { data, error } = await supabase
+        .rpc('get_current_usage', {
+          p_user_id: user.id,
+          p_feature_type: 'assessment'
+        })
+
+      if (error) {
+        // If RPC function doesn't exist yet (SQL not run), silently return defaults
+        if (error.message?.includes('function') || error.message?.includes('does not exist')) {
+          return { used: 0, limit: 10, isAtLimit: false, isNearLimit: false }
+        }
+        throw error
+      }
+
+      if (!data || data.length === 0) {
+        // No usage record yet - return default based on tier
+        const defaultLimit = subscription?.tier === 'enterprise' || subscription?.tier === 'pro' ? -1 :
+                           subscription?.tier === 'professional' ? 40 : 10
+        return { used: 0, limit: defaultLimit, isAtLimit: false, isNearLimit: false }
+      }
+
+      const usage = data[0]
+      return {
+        used: usage.usage_count,
+        limit: usage.limit_amount,
+        isAtLimit: usage.is_at_limit,
+        isNearLimit: usage.is_near_limit
+      }
+    } catch (error) {
+      console.error('Failed to get assessment usage:', error)
+      return { used: 0, limit: 10, isAtLimit: false, isNearLimit: false }
+    }
+  }
+
+  // Check if user can create assessment
+  async function canCreateAssessment(): Promise<boolean> {
+    if (!user) return false
+
+    try {
+      const { data, error } = await supabase
+        .rpc('can_use_feature', {
+          p_user_id: user.id,
+          p_feature_type: 'assessment'
+        })
+
+      if (error) {
+        // If RPC function doesn't exist yet (SQL not run), allow by default
+        if (error.message?.includes('function') || error.message?.includes('does not exist')) {
+          return true
+        }
+        throw error
+      }
+      return data === true
+    } catch (error) {
+      console.error('Failed to check assessment permission:', error)
+      return true // Allow by default if check fails
+    }
+  }
+
+  // Increment assessment usage counter
+  async function incrementAssessmentUsage(): Promise<boolean> {
+    if (!user) return false
+
+    try {
+      const { data, error } = await supabase
+        .rpc('increment_usage', {
+          p_user_id: user.id,
+          p_feature_type: 'assessment'
+        })
+
+      if (error) {
+        // If RPC function doesn't exist yet (SQL not run), silently succeed
+        if (error.message?.includes('function') || error.message?.includes('does not exist')) {
+          return true
+        }
+        throw error
+      }
+      return data === true
+    } catch (error) {
+      console.error('Failed to increment assessment usage:', error)
+      return false
+    }
+  }
+
   return {
     subscription,
     loading,
@@ -156,6 +250,11 @@ export function useSubscription() {
     hasFeatureAccess,
     getDocumentCount,
     canUploadDocument,
+
+    // Assessment usage tracking
+    getAssessmentUsage,
+    canCreateAssessment,
+    incrementAssessmentUsage,
 
     // Helper booleans
     isOnTrial: subscription?.is_trial && subscription?.status === 'trialing',

@@ -359,7 +359,7 @@ export default function CreateUserPage() {
                   </>
                 ) : (
                   <>
-                    Creating a standard <strong>customer</strong> account. They will receive a 14-day trial with 3 assessments.
+                    Creating a standard <strong>customer</strong> account. They will receive a 7-day trial with 3 assessments.
                   </>
                 )}
               </p>

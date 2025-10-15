@@ -1,7 +1,9 @@
 'use client'
 
 import { useAuth } from '@/hooks/useAuth'
+import { useSubscription } from '@/hooks/useSubscription'
 import ProtectedLayout from '@/components/ProtectedLayout'
+import { UsageCounter } from '@/components/UsageCounter'
 import {
   FileText,
   Wrench,
@@ -20,9 +22,29 @@ import {
 } from 'lucide-react'
 import Link from 'next/link'
 import { toast } from 'sonner'
+import { useState, useEffect } from 'react'
 
 export default function DashboardPage() {
   const { user, profile, userRole, isEmployee } = useAuth()
+  const { subscription, getAssessmentUsage } = useSubscription()
+  const [assessmentUsage, setAssessmentUsage] = useState<{
+    used: number
+    limit: number
+    isAtLimit: boolean
+    isNearLimit: boolean
+  } | null>(null)
+
+  // Load assessment usage on mount
+  useEffect(() => {
+    async function loadUsage() {
+      if (getAssessmentUsage) {
+        const usage = await getAssessmentUsage()
+        setAssessmentUsage(usage)
+      }
+    }
+    loadUsage()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []) // Only run once on mount
 
   // Handle workspace redirect with session transfer
   const handleWorkspace = async () => {
@@ -215,6 +237,19 @@ export default function DashboardPage() {
             </div>
           ))}
         </div>
+
+        {/* Assessment Usage Counter */}
+        {assessmentUsage && subscription && (
+          <div className="mb-8">
+            <UsageCounter
+              used={assessmentUsage.used}
+              limit={assessmentUsage.limit}
+              featureName="AI Assessment"
+              tier={subscription.tier}
+              showUpgradeButton={!isEmployee}
+            />
+          </div>
+        )}
 
         {/* Feature Cards */}
         <div>
