@@ -4,8 +4,11 @@ import { useAuth } from '@/hooks/useAuth';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { Users, UserPlus, Shield, Activity, TrendingUp, ArrowLeft, RefreshCw, Edit, Key, Trash2, X, Save } from 'lucide-react';
+import { Users, UserPlus, Shield, Activity, TrendingUp, ArrowLeft, RefreshCw, Edit, Key, Trash2, X, Save, DollarSign, Cpu, Clock, AlertCircle, CheckCircle, Box, MessageSquare, Calendar, ChevronDown, ChevronUp } from 'lucide-react';
 import { toast } from 'sonner';
+import MetricCard from '@/components/dashboard/MetricCard';
+import ActivityFeed from '@/components/dashboard/ActivityFeed';
+import FunnelChart from '@/components/dashboard/FunnelChart';
 
 interface User {
   id: string;
@@ -14,6 +17,65 @@ interface User {
   role: string;
   company: string;
   created_at: string;
+}
+
+interface OperationsData {
+  realtime: {
+    activeSessions: number;
+    todayLeads: number;
+    todayDemos: number;
+    todayProjects: number;
+    aiApiCalls: number;
+  };
+  systemHealth: {
+    apiResponseTime: number;
+    errorRate: number;
+    uploadSuccessRate: number;
+    totalApiCalls: number;
+    totalErrors: number;
+  };
+  userEngagement: {
+    activeUsers: number;
+    totalSessions: number;
+    avgSessionDuration: number;
+    avgMessagesPerSession: number;
+    toolUsageRate: number;
+    totalWebEvents: number;
+  };
+  revenue: {
+    mrr: number;
+    trialStarts: number;
+    conversions: number;
+    conversionRate: number;
+    averageRevenuePerCustomer: number;
+  };
+  aiPerformance: {
+    totalApiCalls: number;
+    operationStats: Record<string, { total: number; success: number; avgTime: number }>;
+    providerBreakdown: Record<string, number>;
+    estimatedCost: number;
+  };
+  leadPipeline: {
+    totalLeads: number;
+    statusBreakdown: Record<string, number>;
+    gradeBreakdown: Record<string, number>;
+    funnel: {
+      leads: number;
+      demosBooked: number;
+      demosBookedRate: number;
+      trialsStarted: number;
+      trialsStartedRate: number;
+      customers: number;
+      customersRate: number;
+    };
+  };
+  recentActivity: Array<{
+    id: string;
+    type: string;
+    title: string;
+    description: string;
+    timestamp: string;
+  }>;
 }
 
 export default function UserManagementPage() {
@@ -31,6 +93,12 @@ export default function UserManagementPage() {
   const [showEditModal, setShowEditModal] = useState(false);
   const [showModuleModal, setShowModuleModal] = useState(false);
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
+
+  // Operations dashboard state
+  const [operationsData, setOperationsData] = useState<OperationsData | null>(null);
+  const [operationsLoading, setOperationsLoading] = useState(false);
+  const [operationsExpanded, setOperationsExpanded] = useState(true);
+  const [timeRange, setTimeRange] = useState<'24h' | '7d' | '30d'>('24h');
 
   // Check if user is super_admin
   const isSuperAdmin = userRole?.role === 'super_admin';
@@ -65,8 +133,16 @@ export default function UserManagementPage() {
   useEffect(() => {
     if (user && isSuperAdmin) {
       fetchUsers();
+      fetchOperationsData();
     }
   }, [user, isSuperAdmin]);
+
+  // Fetch operations data when time range changes
+  useEffect(() => {
+    if (user && isSuperAdmin && operationsExpanded) {
+      fetchOperationsData();
+    }
+  }, [timeRange]);
 
   const fetchUsers = async () => {
     try {
@@ -144,6 +220,25 @@ export default function UserManagementPage() {
       console.error('[UserManagement] Unexpected error:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchOperationsData = async () => {
+    try {
+      setOperationsLoading(true);
+      const response = await fetch(`/api/admin/operations?timeRange=${timeRange}`);
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch operations data');
+      }
+
+      const result = await response.json();
+      setOperationsData(result);
+    } catch (error) {
+      console.error('[Operations] Load error:', error);
+      toast.error('Failed to load operations data');
+    } finally {
+      setOperationsLoading(false);
     }
   };
 
@@ -318,6 +413,267 @@ export default function UserManagementPage() {
       </div>
 
       <div className="max-w-7xl mx-auto px-8 py-8">
+        {/* Operations Dashboard Section */}
+        <div className="mb-8">
+          <button
+            onClick={() => setOperationsExpanded(!operationsExpanded)}
+            className="w-full bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white rounded-xl p-6 shadow-lg transition-all duration-300 flex items-center justify-between"
+          >
+            <div className="flex items-center gap-4">
+              <Activity className="w-8 h-8" />
+              <div className="text-left">
+                <h2 className="text-2xl font-bold">Operations Dashboard</h2>
+                <p className="text-blue-100 text-sm">Real-time platform metrics and analytics</p>
+              </div>
+            </div>
+            {operationsExpanded ? <ChevronUp className="w-6 h-6" /> : <ChevronDown className="w-6 h-6" />}
+          </button>
+
+          {operationsExpanded && (
+            <div className="mt-6 space-y-6">
+              {/* Time Range Selector */}
+              <div className="flex items-center justify-between">
+                <div className="flex gap-2 bg-white rounded-lg border border-gray-300 p-1">
+                  {(['24h', '7d', '30d'] as const).map((range) => (
+                    <button
+                      key={range}
+                      onClick={() => setTimeRange(range)}
+                      className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+                        timeRange === range
+                          ? 'bg-blue-600 text-white'
+                          : 'text-gray-600 hover:bg-gray-100'
+                      }`}
+                    >
+                      {range === '24h' ? 'Last 24 Hours' : range === '7d' ? 'Last 7 Days' : 'Last 30 Days'}
+                    </button>
+                  ))}
+                </div>
+                <button
+                  onClick={fetchOperationsData}
+                  disabled={operationsLoading}
+                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                >
+                  <RefreshCw className={`w-4 h-4 ${operationsLoading ? 'animate-spin' : ''}`} />
+                  Refresh
+                </button>
+              </div>
+
+              {operationsLoading && !operationsData ? (
+                <div className="flex items-center justify-center py-20">
+                  <RefreshCw className="w-8 h-8 text-blue-600 animate-spin" />
+                </div>
+              ) : operationsData ? (
+                <div className="space-y-6">
+                  {/* Real-time Activity Metrics */}
+                  <section>
+                    <h3 className="text-xl font-bold text-gray-900 mb-4">Real-time Activity</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+                      <MetricCard
+                        title="Active Sessions"
+                        value={operationsData.realtime.activeSessions}
+                        icon={<MessageSquare className="w-6 h-6" />}
+                        color="blue"
+                        description="Last 60 minutes"
+                      />
+                      <MetricCard
+                        title="New Leads"
+                        value={operationsData.realtime.todayLeads}
+                        icon={<Users className="w-6 h-6" />}
+                        color="green"
+                        description={timeRange === '24h' ? 'Last 24 Hours' : timeRange === '7d' ? 'Last 7 Days' : 'Last 30 Days'}
+                      />
+                      <MetricCard
+                        title="Demo Bookings"
+                        value={operationsData.realtime.todayDemos}
+                        icon={<Calendar className="w-6 h-6" />}
+                        color="purple"
+                        description={timeRange === '24h' ? 'Last 24 Hours' : timeRange === '7d' ? 'Last 7 Days' : 'Last 30 Days'}
+                      />
+                      <MetricCard
+                        title="Spatial Projects"
+                        value={operationsData.realtime.todayProjects}
+                        icon={<Box className="w-6 h-6" />}
+                        color="yellow"
+                        description={timeRange === '24h' ? 'Last 24 Hours' : timeRange === '7d' ? 'Last 7 Days' : 'Last 30 Days'}
+                      />
+                      <MetricCard
+                        title="AI API Calls"
+                        value={operationsData.realtime.aiApiCalls}
+                        icon={<Cpu className="w-6 h-6" />}
+                        color="red"
+                        description={timeRange === '24h' ? 'Last 24 Hours' : timeRange === '7d' ? 'Last 7 Days' : 'Last 30 Days'}
+                      />
+                    </div>
+                  </section>
+
+                  {/* System Health */}
+                  <section>
+                    <h3 className="text-xl font-bold text-gray-900 mb-4">System Health</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                      <MetricCard
+                        title="Avg API Response"
+                        value={`${operationsData.systemHealth.apiResponseTime}ms`}
+                        icon={<Clock className="w-6 h-6" />}
+                        color={operationsData.systemHealth.apiResponseTime < 1000 ? 'green' : operationsData.systemHealth.apiResponseTime < 3000 ? 'yellow' : 'red'}
+                        description="Average execution time"
+                      />
+                      <MetricCard
+                        title="Error Rate"
+                        value={`${(operationsData.systemHealth.errorRate * 100).toFixed(2)}%`}
+                        icon={<AlertCircle className="w-6 h-6" />}
+                        color={operationsData.systemHealth.errorRate < 0.05 ? 'green' : operationsData.systemHealth.errorRate < 0.1 ? 'yellow' : 'red'}
+                        description={`${operationsData.systemHealth.totalErrors} of ${operationsData.systemHealth.totalApiCalls} calls`}
+                      />
+                      <MetricCard
+                        title="Upload Success Rate"
+                        value={`${operationsData.systemHealth.uploadSuccessRate}%`}
+                        icon={<CheckCircle className="w-6 h-6" />}
+                        color={operationsData.systemHealth.uploadSuccessRate > 95 ? 'green' : operationsData.systemHealth.uploadSuccessRate > 85 ? 'yellow' : 'red'}
+                        description="Spatial Studio uploads"
+                      />
+                      <MetricCard
+                        title="Total API Calls"
+                        value={operationsData.systemHealth.totalApiCalls}
+                        icon={<Activity className="w-6 h-6" />}
+                        color="blue"
+                        description={timeRange === '24h' ? 'Last 24 Hours' : timeRange === '7d' ? 'Last 7 Days' : 'Last 30 Days'}
+                      />
+                    </div>
+                  </section>
+
+                  {/* User Engagement & Revenue */}
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    {/* User Engagement */}
+                    <section>
+                      <h3 className="text-xl font-bold text-gray-900 mb-4">User Engagement</h3>
+                      <div className="grid grid-cols-2 gap-4">
+                        <MetricCard
+                          title="Active Users"
+                          value={operationsData.userEngagement.activeUsers}
+                          icon={<Users className="w-5 h-5" />}
+                          color="blue"
+                        />
+                        <MetricCard
+                          title="Total Sessions"
+                          value={operationsData.userEngagement.totalSessions}
+                          icon={<MessageSquare className="w-5 h-5" />}
+                          color="purple"
+                        />
+                        <MetricCard
+                          title="Avg Session Duration"
+                          value={`${Math.round(operationsData.userEngagement.avgSessionDuration / 60)}m`}
+                          icon={<Clock className="w-5 h-5" />}
+                          color="green"
+                          description="Minutes per session"
+                        />
+                        <MetricCard
+                          title="Tool Usage Rate"
+                          value={`${operationsData.userEngagement.toolUsageRate}%`}
+                          icon={<Box className="w-5 h-5" />}
+                          color="yellow"
+                          description="Leads using tools"
+                        />
+                      </div>
+                    </section>
+
+                    {/* Revenue Metrics */}
+                    <section>
+                      <h3 className="text-xl font-bold text-gray-900 mb-4">Revenue Metrics</h3>
+                      <div className="grid grid-cols-2 gap-4">
+                        <MetricCard
+                          title="Monthly Recurring Revenue"
+                          value={`$${operationsData.revenue.mrr.toLocaleString()}`}
+                          icon={<DollarSign className="w-5 h-5" />}
+                          color="green"
+                        />
+                        <MetricCard
+                          title="Trial Starts"
+                          value={operationsData.revenue.trialStarts}
+                          icon={<Users className="w-5 h-5" />}
+                          color="blue"
+                          description={timeRange === '24h' ? 'Last 24 Hours' : timeRange === '7d' ? 'Last 7 Days' : 'Last 30 Days'}
+                        />
+                        <MetricCard
+                          title="Conversions"
+                          value={operationsData.revenue.conversions}
+                          icon={<TrendingUp className="w-5 h-5" />}
+                          color="purple"
+                          description={timeRange === '24h' ? 'Last 24 Hours' : timeRange === '7d' ? 'Last 7 Days' : 'Last 30 Days'}
+                        />
+                        <MetricCard
+                          title="Conversion Rate"
+                          value={`${operationsData.revenue.conversionRate}%`}
+                          icon={<CheckCircle className="w-5 h-5" />}
+                          color="green"
+                          description="Trial to customer"
+                        />
+                      </div>
+                    </section>
+                  </div>
+
+                  {/* Lead Pipeline Funnel */}
+                  <section>
+                    <h3 className="text-xl font-bold text-gray-900 mb-4">Lead Conversion Funnel</h3>
+                    <div className="bg-white p-6 rounded-lg border-2 border-gray-200">
+                      <FunnelChart
+                        stages={[
+                          { name: 'Leads', count: operationsData.leadPipeline.funnel.leads },
+                          { name: 'Demos Booked', count: operationsData.leadPipeline.funnel.demosBooked, rate: operationsData.leadPipeline.funnel.demosBookedRate },
+                          { name: 'Trials Started', count: operationsData.leadPipeline.funnel.trialsStarted, rate: operationsData.leadPipeline.funnel.trialsStartedRate },
+                          { name: 'Customers', count: operationsData.leadPipeline.funnel.customers, rate: operationsData.leadPipeline.funnel.customersRate }
+                        ]}
+                      />
+                    </div>
+                  </section>
+
+                  {/* AI Performance & Recent Activity */}
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    {/* AI Performance */}
+                    <section>
+                      <h3 className="text-xl font-bold text-gray-900 mb-4">AI Performance</h3>
+                      <div className="bg-white p-6 rounded-lg border-2 border-gray-200 space-y-4">
+                        <div className="grid grid-cols-2 gap-4 mb-4">
+                          <MetricCard
+                            title="Total API Calls"
+                            value={operationsData.aiPerformance.totalApiCalls}
+                            color="blue"
+                          />
+                          <MetricCard
+                            title="Estimated Cost"
+                            value={`$${operationsData.aiPerformance.estimatedCost}`}
+                            color="yellow"
+                          />
+                        </div>
+
+                        {/* Provider Breakdown */}
+                        <div>
+                          <h4 className="font-semibold text-gray-700 mb-2">Provider Usage</h4>
+                          <div className="space-y-2">
+                            {Object.entries(operationsData.aiPerformance.providerBreakdown).map(([provider, count]) => (
+                              <div key={provider} className="flex items-center justify-between">
+                                <span className="text-sm text-gray-600">{provider}</span>
+                                <span className="font-semibold">{count}</span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+                    </section>
+
+                    {/* Recent Activity Feed */}
+                    <section>
+                      <h3 className="text-xl font-bold text-gray-900 mb-4">Recent Activity</h3>
+                      <div className="bg-white p-6 rounded-lg border-2 border-gray-200 max-h-[600px] overflow-y-auto">
+                        <ActivityFeed activities={operationsData.recentActivity.map(a => ({ ...a, type: a.type as 'lead' | 'demo' | 'spatial' | 'ai_session' }))} />
+                      </div>
+                    </section>
+                  </div>
+                </div>
+              ) : null}
+            </div>
+          )}
+        </div>
+
         {/* Quick Stats */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
           <div className="bg-white rounded-xl p-6 border border-gray-200 shadow-sm">
