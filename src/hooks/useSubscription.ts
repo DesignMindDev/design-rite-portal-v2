@@ -175,7 +175,7 @@ export function useSubscription() {
       if (!data || data.length === 0) {
         // No usage record yet - return default based on tier
         const defaultLimit = subscription?.tier === 'enterprise' || subscription?.tier === 'pro' ? -1 :
-                           subscription?.tier === 'professional' ? 40 : 10
+                           subscription?.tier === 'starter' ? 40 : 10
         return { used: 0, limit: defaultLimit, isAtLimit: false, isNearLimit: false }
       }
 
