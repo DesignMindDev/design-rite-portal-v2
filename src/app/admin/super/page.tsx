@@ -880,20 +880,268 @@ export default function UserManagementPage() {
 
         {/* Settings Tab Content */}
         {activeTab === 'settings' && (
-          <div className="max-w-4xl mx-auto">
-            <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-8">
-              <div className="text-center py-12">
-                <Settings className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-                <h3 className="text-xl font-semibold text-gray-900 mb-2">
-                  Dashboard Customization
-                </h3>
-                <p className="text-gray-600 mb-6">
-                  Customize your dashboard layout, widgets, and preferences.
-                </p>
-                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 max-w-2xl mx-auto">
-                  <p className="text-sm text-blue-900">
-                    <strong>Coming Soon:</strong> Dashboard customization features including widget selection, layout preferences, and theme options.
-                  </p>
+          <div className="max-w-6xl mx-auto space-y-6">
+            {/* Widget Visibility Section */}
+            <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
+              <div className="flex items-center gap-3 mb-6">
+                <Box className="w-6 h-6 text-indigo-600" />
+                <div>
+                  <h3 className="text-xl font-semibold text-gray-900">Widget Visibility</h3>
+                  <p className="text-sm text-gray-600">Choose which widgets to display on your dashboard</p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* Real-time Activity Card */}
+                <div className="border border-gray-200 rounded-lg p-4 hover:border-indigo-300 transition-colors">
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center gap-3">
+                      <Activity className="w-5 h-5 text-blue-600" />
+                      <span className="font-medium text-gray-900">Real-time Activity</span>
+                    </div>
+                    <label className="relative inline-flex items-center cursor-pointer">
+                      <input type="checkbox" defaultChecked className="sr-only peer" />
+                      <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-indigo-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
+                    </label>
+                  </div>
+                  <p className="text-sm text-gray-600">Active sessions, leads, demos, projects, AI calls</p>
+                </div>
+
+                {/* System Health Card */}
+                <div className="border border-gray-200 rounded-lg p-4 hover:border-indigo-300 transition-colors">
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center gap-3">
+                      <CheckCircle className="w-5 h-5 text-green-600" />
+                      <span className="font-medium text-gray-900">System Health</span>
+                    </div>
+                    <label className="relative inline-flex items-center cursor-pointer">
+                      <input type="checkbox" defaultChecked className="sr-only peer" />
+                      <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-indigo-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
+                    </label>
+                  </div>
+                  <p className="text-sm text-gray-600">API response time, error rate, upload success</p>
+                </div>
+
+                {/* User Engagement Card */}
+                <div className="border border-gray-200 rounded-lg p-4 hover:border-indigo-300 transition-colors">
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center gap-3">
+                      <Users className="w-5 h-5 text-purple-600" />
+                      <span className="font-medium text-gray-900">User Engagement</span>
+                    </div>
+                    <label className="relative inline-flex items-center cursor-pointer">
+                      <input type="checkbox" defaultChecked className="sr-only peer" />
+                      <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-indigo-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
+                    </label>
+                  </div>
+                  <p className="text-sm text-gray-600">Active users, sessions, duration, tool usage</p>
+                </div>
+
+                {/* Revenue Metrics Card */}
+                <div className="border border-gray-200 rounded-lg p-4 hover:border-indigo-300 transition-colors">
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center gap-3">
+                      <DollarSign className="w-5 h-5 text-green-600" />
+                      <span className="font-medium text-gray-900">Revenue Metrics</span>
+                    </div>
+                    <label className="relative inline-flex items-center cursor-pointer">
+                      <input type="checkbox" defaultChecked className="sr-only peer" />
+                      <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-indigo-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
+                    </label>
+                  </div>
+                  <p className="text-sm text-gray-600">MRR, trial starts, conversions, conversion rate</p>
+                </div>
+
+                {/* Lead Funnel Chart */}
+                <div className="border border-gray-200 rounded-lg p-4 hover:border-indigo-300 transition-colors">
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center gap-3">
+                      <TrendingUp className="w-5 h-5 text-blue-600" />
+                      <span className="font-medium text-gray-900">Lead Funnel Chart</span>
+                    </div>
+                    <label className="relative inline-flex items-center cursor-pointer">
+                      <input type="checkbox" defaultChecked className="sr-only peer" />
+                      <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-indigo-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
+                    </label>
+                  </div>
+                  <p className="text-sm text-gray-600">Leads → Demos → Trials → Customers conversion</p>
+                </div>
+
+                {/* AI Performance Card */}
+                <div className="border border-gray-200 rounded-lg p-4 hover:border-indigo-300 transition-colors">
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center gap-3">
+                      <Cpu className="w-5 h-5 text-yellow-600" />
+                      <span className="font-medium text-gray-900">AI Performance</span>
+                    </div>
+                    <label className="relative inline-flex items-center cursor-pointer">
+                      <input type="checkbox" defaultChecked className="sr-only peer" />
+                      <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-indigo-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
+                    </label>
+                  </div>
+                  <p className="text-sm text-gray-600">API calls, provider breakdown, estimated cost</p>
+                </div>
+
+                {/* Recent Activity Feed */}
+                <div className="border border-gray-200 rounded-lg p-4 hover:border-indigo-300 transition-colors">
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center gap-3">
+                      <Clock className="w-5 h-5 text-gray-600" />
+                      <span className="font-medium text-gray-900">Recent Activity Feed</span>
+                    </div>
+                    <label className="relative inline-flex items-center cursor-pointer">
+                      <input type="checkbox" defaultChecked className="sr-only peer" />
+                      <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-indigo-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
+                    </label>
+                  </div>
+                  <p className="text-sm text-gray-600">Real-time activity stream from all platform events</p>
+                </div>
+
+                {/* Operations Dashboard */}
+                <div className="border border-gray-200 rounded-lg p-4 hover:border-indigo-300 transition-colors">
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center gap-3">
+                      <LayoutDashboard className="w-5 h-5 text-indigo-600" />
+                      <span className="font-medium text-gray-900">Full Operations Panel</span>
+                    </div>
+                    <label className="relative inline-flex items-center cursor-pointer">
+                      <input type="checkbox" defaultChecked className="sr-only peer" />
+                      <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-indigo-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
+                    </label>
+                  </div>
+                  <p className="text-sm text-gray-600">Show/hide entire operations dashboard section</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Layout Preferences Section */}
+            <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
+              <div className="flex items-center gap-3 mb-6">
+                <LayoutDashboard className="w-6 h-6 text-indigo-600" />
+                <div>
+                  <h3 className="text-xl font-semibold text-gray-900">Layout Preferences</h3>
+                  <p className="text-sm text-gray-600">Customize how your dashboard is displayed</p>
+                </div>
+              </div>
+
+              <div className="space-y-6">
+                {/* Card Size */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-3">Metric Card Size</label>
+                  <div className="grid grid-cols-3 gap-4">
+                    <button className="border-2 border-indigo-600 bg-indigo-50 rounded-lg p-4 text-center hover:bg-indigo-100 transition-colors">
+                      <div className="text-sm font-medium text-gray-900 mb-1">Compact</div>
+                      <div className="text-xs text-gray-600">Smaller cards, more per row</div>
+                    </button>
+                    <button className="border-2 border-gray-200 rounded-lg p-4 text-center hover:border-indigo-300 transition-colors">
+                      <div className="text-sm font-medium text-gray-900 mb-1">Standard</div>
+                      <div className="text-xs text-gray-600">Default card size</div>
+                    </button>
+                    <button className="border-2 border-gray-200 rounded-lg p-4 text-center hover:border-indigo-300 transition-colors">
+                      <div className="text-sm font-medium text-gray-900 mb-1">Large</div>
+                      <div className="text-xs text-gray-600">Bigger cards with more detail</div>
+                    </button>
+                  </div>
+                </div>
+
+                {/* Grid Density */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-3">Grid Density</label>
+                  <div className="flex gap-4">
+                    <button className="flex-1 border-2 border-indigo-600 bg-indigo-50 rounded-lg p-4 hover:bg-indigo-100 transition-colors">
+                      <div className="text-sm font-medium text-gray-900 mb-1">Dense</div>
+                      <div className="text-xs text-gray-600">More cards per row</div>
+                    </button>
+                    <button className="flex-1 border-2 border-gray-200 rounded-lg p-4 hover:border-indigo-300 transition-colors">
+                      <div className="text-sm font-medium text-gray-900 mb-1">Comfortable</div>
+                      <div className="text-xs text-gray-600">Balanced layout</div>
+                    </button>
+                  </div>
+                </div>
+
+                {/* Default Time Range */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-3">Default Time Range</label>
+                  <select className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent">
+                    <option value="24h">Last 24 Hours</option>
+                    <option value="7d">Last 7 Days</option>
+                    <option value="30d">Last 30 Days</option>
+                  </select>
+                </div>
+
+                {/* Auto-refresh */}
+                <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+                  <div>
+                    <div className="font-medium text-gray-900">Auto-refresh Dashboard</div>
+                    <div className="text-sm text-gray-600">Automatically update metrics every 30 seconds</div>
+                  </div>
+                  <label className="relative inline-flex items-center cursor-pointer">
+                    <input type="checkbox" defaultChecked className="sr-only peer" />
+                    <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-indigo-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
+                  </label>
+                </div>
+              </div>
+            </div>
+
+            {/* Theme Customization Section */}
+            <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
+              <div className="flex items-center gap-3 mb-6">
+                <Settings className="w-6 h-6 text-indigo-600" />
+                <div>
+                  <h3 className="text-xl font-semibold text-gray-900">Theme & Colors</h3>
+                  <p className="text-sm text-gray-600">Personalize your dashboard appearance</p>
+                </div>
+              </div>
+
+              <div className="space-y-6">
+                {/* Accent Color */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-3">Accent Color</label>
+                  <div className="grid grid-cols-6 gap-3">
+                    <button className="w-12 h-12 rounded-lg bg-indigo-600 border-4 border-indigo-600 hover:scale-110 transition-transform" title="Indigo (Default)"></button>
+                    <button className="w-12 h-12 rounded-lg bg-blue-600 border-2 border-gray-300 hover:scale-110 transition-transform" title="Blue"></button>
+                    <button className="w-12 h-12 rounded-lg bg-purple-600 border-2 border-gray-300 hover:scale-110 transition-transform" title="Purple"></button>
+                    <button className="w-12 h-12 rounded-lg bg-green-600 border-2 border-gray-300 hover:scale-110 transition-transform" title="Green"></button>
+                    <button className="w-12 h-12 rounded-lg bg-red-600 border-2 border-gray-300 hover:scale-110 transition-transform" title="Red"></button>
+                    <button className="w-12 h-12 rounded-lg bg-amber-600 border-2 border-gray-300 hover:scale-110 transition-transform" title="Amber"></button>
+                  </div>
+                </div>
+
+                {/* Chart Style */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-3">Chart Style</label>
+                  <div className="grid grid-cols-2 gap-4">
+                    <button className="border-2 border-indigo-600 bg-indigo-50 rounded-lg p-4 hover:bg-indigo-100 transition-colors">
+                      <div className="text-sm font-medium text-gray-900 mb-1">Modern</div>
+                      <div className="text-xs text-gray-600">Rounded, gradient styles</div>
+                    </button>
+                    <button className="border-2 border-gray-200 rounded-lg p-4 hover:border-indigo-300 transition-colors">
+                      <div className="text-sm font-medium text-gray-900 mb-1">Classic</div>
+                      <div className="text-xs text-gray-600">Clean, minimal design</div>
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Save Button */}
+            <div className="flex items-center justify-between bg-white rounded-xl border border-gray-200 shadow-sm p-6">
+              <div>
+                <div className="font-medium text-gray-900">Save Dashboard Preferences</div>
+                <div className="text-sm text-gray-600 mt-1">Changes will be applied immediately and saved to your profile</div>
+              </div>
+              <button className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-3 rounded-lg font-medium transition-colors shadow-sm hover:shadow-md">
+                <Save className="w-5 h-5" />
+                Save Preferences
+              </button>
+            </div>
+
+            {/* Info Banner */}
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+              <div className="flex items-start gap-3">
+                <AlertCircle className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
+                <div className="text-sm text-blue-900">
+                  <strong>Coming Soon:</strong> These preferences are currently for demo purposes. Database integration and preference persistence will be implemented in the next update. For now, you can preview how each customization option will look and feel.
                 </div>
               </div>
             </div>
