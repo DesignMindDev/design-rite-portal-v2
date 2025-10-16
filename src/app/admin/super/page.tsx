@@ -105,6 +105,27 @@ export default function UserManagementPage() {
   // Tab state
   const [activeTab, setActiveTab] = useState<'dashboard' | 'users' | 'settings'>('users');
 
+  // Dashboard preferences state
+  const [preferences, setPreferences] = useState({
+    widget_visibility: {
+      realtimeActivity: true,
+      systemHealth: true,
+      userEngagement: true,
+      revenueMetrics: true,
+      leadFunnel: true,
+      aiPerformance: true,
+      activityFeed: true,
+      operationsDashboard: true
+    },
+    card_size: 'compact' as 'compact' | 'standard' | 'large',
+    grid_density: 'dense' as 'dense' | 'comfortable',
+    default_time_range: '24h' as '24h' | '7d' | '30d',
+    auto_refresh: true,
+    accent_color: 'indigo' as 'indigo' | 'blue' | 'purple' | 'green' | 'red' | 'amber',
+    chart_style: 'modern' as 'modern' | 'classic'
+  });
+  const [preferencesSaving, setPreferencesSaving] = useState(false);
+
   // Check if user is super_admin
   const isSuperAdmin = userRole?.role === 'super_admin';
 
@@ -134,11 +155,12 @@ export default function UserManagementPage() {
     }
   }, [user, authLoading, isSuperAdmin, userRole, router]);
 
-  // Fetch users
+  // Fetch users and preferences
   useEffect(() => {
     if (user && isSuperAdmin) {
       fetchUsers();
       fetchOperationsData();
+      fetchPreferences();
     }
   }, [user, isSuperAdmin]);
 
@@ -216,6 +238,82 @@ export default function UserManagementPage() {
       toast.error('Failed to load operations data');
     } finally {
       setOperationsLoading(false);
+    }
+  };
+
+  const fetchPreferences = async () => {
+    try {
+      // Get the authenticated session
+      const { supabase } = await import('@/lib/supabase');
+      const { data: { session } } = await supabase.auth.getSession();
+
+      if (!session) {
+        console.error('[Preferences] No session found');
+        return;
+      }
+
+      console.log('[Preferences] Fetching preferences...');
+
+      // Call the preferences API endpoint
+      const response = await fetch('/api/admin/preferences', {
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`
+        }
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to fetch preferences');
+      }
+
+      const result = await response.json();
+
+      if (result.success && result.preferences) {
+        console.log('[Preferences] Loaded preferences:', result.isDefault ? 'defaults' : 'saved');
+        setPreferences(result.preferences);
+      }
+    } catch (error) {
+      console.error('[Preferences] Load error:', error);
+      // Silently fail - preferences will use defaults
+    }
+  };
+
+  const handleSavePreferences = async () => {
+    try {
+      setPreferencesSaving(true);
+
+      // Get the authenticated session
+      const { supabase } = await import('@/lib/supabase');
+      const { data: { session } } = await supabase.auth.getSession();
+
+      if (!session) {
+        toast.error('Session expired. Please sign in again.');
+        return;
+      }
+
+      console.log('[Preferences] Saving preferences...');
+
+      // Call the preferences API endpoint
+      const response = await fetch('/api/admin/preferences', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`
+        },
+        body: JSON.stringify({ preferences })
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to save preferences');
+      }
+
+      toast.success('Preferences saved successfully!');
+    } catch (error) {
+      console.error('[Preferences] Save error:', error);
+      toast.error(error instanceof Error ? error.message : 'Failed to save preferences');
+    } finally {
+      setPreferencesSaving(false);
     }
   };
 
@@ -1130,20 +1228,18 @@ export default function UserManagementPage() {
                 <div className="font-medium text-gray-900">Save Dashboard Preferences</div>
                 <div className="text-sm text-gray-600 mt-1">Changes will be applied immediately and saved to your profile</div>
               </div>
-              <button className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-3 rounded-lg font-medium transition-colors shadow-sm hover:shadow-md">
-                <Save className="w-5 h-5" />
-                Save Preferences
+              <button
+                onClick={handleSavePreferences}
+                disabled={preferencesSaving}
+                className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed text-white px-6 py-3 rounded-lg font-medium transition-colors shadow-sm hover:shadow-md"
+              >
+                {preferencesSaving ? (
+                  <RefreshCw className="w-5 h-5 animate-spin" />
+                ) : (
+                  <Save className="w-5 h-5" />
+                )}
+                {preferencesSaving ? 'Saving...' : 'Save Preferences'}
               </button>
-            </div>
-
-            {/* Info Banner */}
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-              <div className="flex items-start gap-3">
-                <AlertCircle className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
-                <div className="text-sm text-blue-900">
-                  <strong>Coming Soon:</strong> These preferences are currently for demo purposes. Database integration and preference persistence will be implemented in the next update. For now, you can preview how each customization option will look and feel.
-                </div>
-              </div>
             </div>
           </div>
         )}
