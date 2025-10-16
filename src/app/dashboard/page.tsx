@@ -18,7 +18,9 @@ import {
   Sparkles,
   BookOpen,
   User,
-  ExternalLink
+  ExternalLink,
+  Lightbulb,
+  FileDown
 } from 'lucide-react'
 import Link from 'next/link'
 import { toast } from 'sonner'
@@ -129,14 +131,6 @@ export default function DashboardPage() {
       color: 'from-amber-500 to-amber-600'
     },
     {
-      title: 'Helpful Documents',
-      description: 'Access guides and resources',
-      subtitle: 'View, download, and print helpful PDFs and guides provided by admins.',
-      icon: BookOpen,
-      href: '/documents?tab=resources',
-      color: 'from-teal-500 to-teal-600'
-    },
-    {
       title: 'Profile',
       description: 'Manage your account settings',
       subtitle: 'Update your company information, logo, and account preferences.',
@@ -151,8 +145,38 @@ export default function DashboardPage() {
       icon: CreditCard,
       href: '/subscription',
       color: 'from-indigo-500 to-indigo-600'
+    },
+    {
+      title: 'Compliance Resources',
+      description: 'Downloadable guides and templates',
+      subtitle: 'Access our library of compliance guides, checklists, policy templates, and reference materials.',
+      icon: FileDown,
+      href: '/compliance-resources',
+      color: 'from-emerald-500 to-emerald-600',
+      badge: 'Educational'
+    },
+    {
+      title: 'Learning Center',
+      description: 'Security compliance education',
+      subtitle: 'Deep-dive educational content on ISO 27001, SOC 2, risk assessment, and compliance frameworks.',
+      icon: Lightbulb,
+      href: '/learning-center',
+      color: 'from-yellow-500 to-yellow-600',
+      badge: 'Educational'
     }
   ]
+
+  // Determine account status display
+  const getAccountStatus = () => {
+    if (isEmployee) {
+      return 'Admin'
+    }
+    if (subscription?.tier) {
+      // Capitalize first letter of tier
+      return subscription.tier.charAt(0).toUpperCase() + subscription.tier.slice(1)
+    }
+    return 'Free Tier'
+  }
 
   const quickStats = [
     {
@@ -164,7 +188,7 @@ export default function DashboardPage() {
     },
     {
       label: 'Account Status',
-      value: 'Free Tier',
+      value: getAccountStatus(),
       icon: CheckCircle,
       color: 'text-green-600',
       bgColor: 'bg-green-100'
