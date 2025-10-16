@@ -14,18 +14,66 @@ import {
   ArrowRight
 } from 'lucide-react'
 import { toast } from 'sonner'
+import SetPasswordModal from '@/components/SetPasswordModal'
+import { supabase } from '@/lib/supabase'
 
 export default function WelcomePage() {
   const router = useRouter()
   const { user, profile, loading, isEmployee } = useAuth()
   const [logoClicks, setLogoClicks] = useState(0)
   const [showEasterEgg, setShowEasterEgg] = useState(false)
+  const [showPasswordModal, setShowPasswordModal] = useState(false)
+  const [checkingPassword, setCheckingPassword] = useState(true)
 
   useEffect(() => {
     if (!loading && !user) {
       router.push('/auth')
     }
   }, [user, loading, router])
+
+  // Check if user needs to set password on first login
+  useEffect(() => {
+    const checkPasswordStatus = async () => {
+      if (!user) {
+        setCheckingPassword(false)
+        return
+      }
+
+      try {
+        // Check user metadata to see if they've set a password
+        const { data: { user: authUser }, error } = await supabase.auth.getUser()
+
+        if (error) {
+          console.error('[Welcome] Error checking user:', error)
+          setCheckingPassword(false)
+          return
+        }
+
+        // Check if user signed up via magic link and hasn't set a password yet
+        // Look for the 'password_set' flag in user metadata
+        const passwordSet = authUser?.user_metadata?.password_set
+        const lastSignIn = authUser?.last_sign_in_at
+        const createdAt = authUser?.created_at
+
+        // If this is their first sign-in (within 5 minutes of account creation) and no password set
+        const isFirstLogin = lastSignIn && createdAt &&
+          (new Date(lastSignIn).getTime() - new Date(createdAt).getTime()) < 5 * 60 * 1000
+
+        if (!passwordSet && isFirstLogin) {
+          console.log('[Welcome] First login detected, showing password setup modal')
+          setShowPasswordModal(true)
+        }
+      } catch (error) {
+        console.error('[Welcome] Error checking password status:', error)
+      } finally {
+        setCheckingPassword(false)
+      }
+    }
+
+    if (user && !loading) {
+      checkPasswordStatus()
+    }
+  }, [user, loading])
 
   // Handle logo clicks (easter egg)
   const handleLogoClick = () => {
@@ -46,6 +94,25 @@ export default function WelcomePage() {
         duration: 1000,
         icon: '👀'
       })
+    }
+  }
+
+  // Handle password modal close
+  const handlePasswordModalClose = () => {
+    setShowPasswordModal(false)
+  }
+
+  // Handle password setup success
+  const handlePasswordSetSuccess = async () => {
+    try {
+      // Update user metadata to mark password as set
+      await supabase.auth.updateUser({
+        data: { password_set: true }
+      })
+      setShowPasswordModal(false)
+      toast.success('You\'re all set! You can now sign in with your email and password.')
+    } catch (error) {
+      console.error('[Welcome] Error updating user metadata:', error)
     }
   }
 
@@ -362,6 +429,13 @@ export default function WelcomePage() {
           </div>
         </div>
       </main>
+
+      {/* Set Password Modal */}
+      <SetPasswordModal
+        isOpen={showPasswordModal}
+        onClose={handlePasswordModalClose}
+        onSuccess={handlePasswordSetSuccess}
+      />
 
       {/* Easter Egg Animation */}
       {showEasterEgg && (
