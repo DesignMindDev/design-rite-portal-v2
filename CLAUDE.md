@@ -424,8 +424,50 @@ Port: 3001
 
 ---
 
-**Last Updated**: 2025-01-13 (Portal V2 with cross-platform auth)
+---
+
+## Recent Migrations (2025-10-16)
+
+### Marketing & Content Management - COMPLETE ✅
+
+Successfully migrated marketing and content management features from design-rite-v4 to portal v2:
+
+**1. About Us Team Management** (`/admin/about-team`)
+- API: Full CRUD for public-facing team profiles + photo uploads
+- Features: Auto-generates initials, default team members included
+- Storage: `data/team.json` + `public/uploads/team/`
+
+**2. Site Logo Management** (`/admin/site-logos`)
+- API: Header/footer logo uploads + site settings management
+- Features: Automatic old file cleanup, image previews
+- Storage: `data/settings.json` + `public/uploads/logos/`
+
+**3. Blog Management** (APIs Complete)
+- API: Full blog post CRUD + featured image uploads
+- Features: Tags, publish/draft status, content management
+- Storage: `data/blog-posts.json` + `public/blog/`
+
+**Files Created:**
+```
+src/app/api/admin/team/route.ts
+src/app/api/admin/upload-photo/route.ts
+src/app/api/admin/settings/route.ts
+src/app/api/admin/upload-logo/route.ts
+src/app/api/admin/blog/route.ts
+src/app/api/admin/upload-blog-image/route.ts
+src/app/admin/about-team/page.tsx
+src/app/admin/site-logos/page.tsx
+```
+
+**Access URLs:**
+- Team: http://localhost:3001/admin/about-team
+- Logos: http://localhost:3001/admin/site-logos
+- Blog: APIs ready (UI optional)
+
+---
+
+**Last Updated**: 2025-10-16 (Marketing/Content Management Complete)
 
 **Current Commits**:
-- Portal: `407df4c0` - Bidirectional navigation with v4
+- Portal: Latest - Marketing & Content migrations complete
 - V4: `b874bab` - Complete cross-platform auth flow

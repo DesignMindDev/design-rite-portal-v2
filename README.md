@@ -95,6 +95,13 @@ Design-Rite Portal V2 is a Next.js-based customer portal that provides:
 - 🎨 **Theme Customization** - Personalize UI appearance
 - 👤 **Profile Management** - Update account settings
 
+### Marketing & Content Management (New - Oct 2025)
+- 👥 **Team Management** - Manage public-facing About Us team profiles
+- 🎨 **Site Logo Management** - Upload and manage header/footer logos
+- 📝 **Blog Management** - Complete blog post CRUD with featured images
+- 📸 **Photo Uploads** - Team photos and blog featured images
+- 💾 **File-based Storage** - JSON data files with image uploads
+
 ### Cross-Platform Integration
 - 🔄 Seamless session transfer to Design-Rite v4 workspace
 - 🔙 Return navigation from v4 back to portal
@@ -260,6 +267,25 @@ design-rite-portal-v2/
 │   │   │   └── page.tsx
 │   │   ├── profile/                 # Profile settings
 │   │   │   └── page.tsx
+│   │   ├── admin/                   # Admin pages
+│   │   │   ├── about-team/         # Team management UI
+│   │   │   │   └── page.tsx
+│   │   │   └── site-logos/         # Logo management UI
+│   │   │       └── page.tsx
+│   │   ├── api/                     # API routes
+│   │   │   └── admin/              # Admin APIs
+│   │   │       ├── team/           # Team CRUD
+│   │   │       │   └── route.ts
+│   │   │       ├── upload-photo/   # Team photos
+│   │   │       │   └── route.ts
+│   │   │       ├── settings/       # Site settings
+│   │   │       │   └── route.ts
+│   │   │       ├── upload-logo/    # Logo uploads
+│   │   │       │   └── route.ts
+│   │   │       ├── blog/           # Blog CRUD
+│   │   │       │   └── route.ts
+│   │   │       └── upload-blog-image/
+│   │   │           └── route.ts
 │   │   ├── transfer-session/        # Admin dashboard redirect
 │   │   │   └── page.tsx
 │   │   ├── layout.tsx               # Root layout
@@ -276,7 +302,15 @@ design-rite-portal-v2/
 ├── supabase/                         # Database migrations & schema
 │   ├── 00_fresh_start_2025_10_13.sql
 │   └── [other migration files]
+├── data/                             # File-based storage
+│   ├── team.json                    # Team member profiles
+│   ├── settings.json                # Site settings
+│   └── blog-posts.json              # Blog posts
 ├── public/                           # Static assets
+│   ├── uploads/                     # Uploaded files
+│   │   ├── team/                    # Team photos
+│   │   └── logos/                   # Header/footer logos
+│   └── blog/                        # Blog featured images
 ├── .env.example                      # Environment variable template
 ├── .env.local                        # Local environment (not committed)
 ├── next.config.js                    # Next.js configuration

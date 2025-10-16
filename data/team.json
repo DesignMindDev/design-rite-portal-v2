@@ -1,0 +1,35 @@
+[
+  {
+    "id": "1",
+    "name": "Dan Kozich",
+    "role": "Founder & Principal Designer",
+    "description": "Over two decades of expertise in low-voltage design, security systems, and technology integration. Trusted advisor to Fortune 500 companies, school districts, hospitals, and critical infrastructure facilities. Subject matter expert automating compliance checks and design optimization.",
+    "imagePath": "/team/dan-kozich.jpg",
+    "initials": "DK"
+  },
+  {
+    "id": "2",
+    "name": "Philip Lisk",
+    "role": "Managing Director",
+    "description": "Strategic leadership driving Design-Rite's growth and market expansion. Expertise in business development, operations, and scaling technology solutions in the security industry.",
+    "imagePath": "/team/philip-lisk.jpg",
+    "initials": "PL"
+  },
+  {
+    "id": "3",
+    "name": "Munnyman Communications",
+    "role": "Development Team",
+    "description": "Expert development team bringing Design-Rite's vision to life. Specializing in AI platforms, modern web technologies, and scalable solutions that deliver powerful word-of-mouth results.",
+    "imagePath": "/team/munnyman-communications.jpg",
+    "initials": "MC",
+    "href": "https://mmcommunications-newsletter-elitemembers.beehiiv.com/p/powerful-word-of-mouth-real-results"
+  },
+  {
+    "id": "4",
+    "name": "AI Research Team",
+    "role": "Core Intelligence",
+    "description": "Advanced AI models trained on thousands of security designs, compliance standards, and industry best practices.",
+    "imagePath": "/team/ai-research.jpg",
+    "initials": "🧠"
+  }
+]

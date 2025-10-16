@@ -337,5 +337,72 @@ The production database schema does NOT match the SQL migration files:
 
 ---
 
+## 11. Marketing & Content Management Migration ✅
+
+**Date:** 2025-10-16
+
+### Features Migrated from design-rite-v4
+Successfully migrated three marketing/content management features from the main platform:
+
+#### Team Management (About Us Page)
+- **Route:** `/admin/about-team`
+- **API Endpoints:**
+  - `GET /api/admin/team` - Load team members
+  - `POST /api/admin/team` - Create team member
+  - `PUT /api/admin/team` - Update team member
+  - `DELETE /api/admin/team?id=xxx` - Delete team member
+  - `POST /api/admin/upload-photo` - Upload team photos
+- **Features:**
+  - Full CRUD for public-facing team profiles
+  - Photo uploads with automatic old file cleanup
+  - Auto-generates initials from names
+  - Default team: Dan Kozich, Philip Lisk, Munnyman Communications, AI Research Team
+  - Storage: `data/team.json` + `public/uploads/team/`
+
+#### Site Logo Management
+- **Route:** `/admin/site-logos`
+- **API Endpoints:**
+  - `GET /api/admin/settings` - Load site settings
+  - `PUT /api/admin/settings` - Update settings
+  - `POST /api/admin/upload-logo` - Upload header/footer logos
+- **Features:**
+  - Header and footer logo management
+  - Logo uploads with automatic replacement
+  - Storage: `data/settings.json` + `public/uploads/logos/`
+
+#### Blog Management
+- **API Endpoints (UI Optional):**
+  - `GET /api/admin/blog` - Load all posts
+  - `POST /api/admin/blog` - Create post
+  - `PUT /api/admin/blog` - Update post
+  - `DELETE /api/admin/blog?id=xxx` - Delete post
+  - `POST /api/admin/upload-blog-image` - Upload featured images
+- **Features:**
+  - Full blog post CRUD
+  - Featured image uploads
+  - Tags and categories
+  - Publish/draft status
+  - Storage: `data/blog-posts.json` + `public/blog/`
+
+### Files Created
+```
+src/app/api/admin/team/route.ts
+src/app/api/admin/upload-photo/route.ts
+src/app/api/admin/settings/route.ts
+src/app/api/admin/upload-logo/route.ts
+src/app/api/admin/blog/route.ts
+src/app/api/admin/upload-blog-image/route.ts
+src/app/admin/about-team/page.tsx
+src/app/admin/site-logos/page.tsx
+```
+
+### Access URLs
+- http://localhost:3001/admin/about-team
+- http://localhost:3001/admin/site-logos
+- Blog UI page pending (APIs complete)
+
+---
+
 **Implementation Complete:** 2025-10-15
+**Marketing Migration Complete:** 2025-10-16
 **Status:** Production Ready 🚀

@@ -130,19 +130,35 @@ export default function AdminDashboardPage() {
       status: 'active'
     },
     {
-      title: 'Team Management',
-      description: 'Manage team members and roles',
+      title: 'Team Management (Internal)',
+      description: 'Manage internal team members and roles',
       icon: UsersRound,
       href: '/admin/team',
       color: 'from-blue-500 to-blue-600',
       status: 'active'
     },
     {
-      title: 'Logos & Branding',
-      description: 'Manage company logos and brand assets',
+      title: 'About Us Team (Public)',
+      description: 'Manage public-facing About Us team profiles',
+      icon: Users,
+      href: '/admin/about-team',
+      color: 'from-emerald-500 to-emerald-600',
+      status: 'active'
+    },
+    {
+      title: 'Site Logos',
+      description: 'Manage header and footer logos',
       icon: Palette,
-      href: '/admin/logos',
+      href: '/admin/site-logos',
       color: 'from-rose-500 to-rose-600',
+      status: 'active'
+    },
+    {
+      title: 'Blog Management',
+      description: 'Create and manage blog posts with featured images',
+      icon: FileText,
+      href: '/admin/blog',
+      color: 'from-violet-500 to-violet-600',
       status: 'active'
     }
   ]
@@ -165,9 +181,9 @@ export default function AdminDashboardPage() {
             <div className="flex items-start gap-3">
               <AlertCircle className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
               <div>
-                <p className="text-sm text-green-900 font-medium">All admin pages are now active!</p>
+                <p className="text-sm text-green-900 font-medium">Marketing & Content Migration Complete!</p>
                 <p className="text-sm text-green-700 mt-1">
-                  9 of 10 admin sections are fully functional. Only Spatial Studio is pending migration.
+                  11 of 12 admin sections fully active. Only Spatial Studio remaining!
                 </p>
               </div>
             </div>
@@ -183,7 +199,7 @@ export default function AdminDashboardPage() {
               </div>
               <div>
                 <p className="text-sm text-gray-500 font-medium">Active Pages</p>
-                <p className="text-2xl font-bold text-gray-900">9 / 10</p>
+                <p className="text-2xl font-bold text-gray-900">11 / 12</p>
               </div>
             </div>
           </div>
@@ -282,14 +298,14 @@ export default function AdminDashboardPage() {
               <Shield className="w-6 h-6" />
             </div>
             <div className="flex-1">
-              <h3 className="text-2xl font-bold mb-2">🎉 Migration Nearly Complete!</h3>
+              <h3 className="text-2xl font-bold mb-2">🎉 Marketing & Content Migration Complete!</h3>
               <p className="text-blue-100 mb-4">
-                9 of 10 admin pages are now live with full functionality. Only Spatial Studio remaining.
+                Team profiles, site logos, and blog management successfully migrated. 11 of 12 pages fully active!
               </p>
               <div className="bg-white/20 rounded-full h-3 overflow-hidden">
-                <div className="bg-white h-full rounded-full transition-all duration-500" style={{ width: '90%' }}></div>
+                <div className="bg-white h-full rounded-full transition-all duration-500" style={{ width: '92%' }}></div>
               </div>
-              <p className="text-sm text-blue-100 mt-2">9 of 10 pages active (90% complete)</p>
+              <p className="text-sm text-blue-100 mt-2">11 of 12 pages active (92% complete)</p>
             </div>
           </div>
         </div>
