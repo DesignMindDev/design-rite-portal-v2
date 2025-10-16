@@ -18,7 +18,8 @@ import {
   ChevronRight,
   Menu,
   X,
-  ArrowLeft
+  ArrowLeft,
+  Edit3
 } from 'lucide-react'
 import { toast } from 'sonner'
 
@@ -42,7 +43,8 @@ export default function Sidebar() {
   // Navigation items - everyone sees these
   const navItems = [
     { path: '/dashboard', label: 'Dashboard', icon: Home },
-    { path: '/documents', label: 'Documents', icon: FileText },
+    { path: '/documents', label: 'Documents', icon: FileText, badge: 'Pro' },
+    { path: '/document-templates', label: 'Document Templates', icon: Edit3, badge: 'Pro' },
     { path: '/business-tools', label: 'Business Tools', icon: Wrench },
     { path: '/voltage', label: 'Voltage Calculator', icon: Zap, badge: 'Pro' },
     { path: '/analytics', label: 'Analytics', icon: BarChart3 },
