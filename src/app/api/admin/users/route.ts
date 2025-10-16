@@ -67,19 +67,24 @@ export async function GET(request: NextRequest) {
 
     console.log('[Admin Users API] Fetching all users for:', user.email, '(', userRole.role, ')');
 
-    // Fetch all profiles using service key (bypasses RLS)
-    const { data: profiles, error: profilesError } = await supabaseAdmin
-      .from('profiles')
-      .select('id, email, full_name, company, created_at')
-      .order('created_at', { ascending: false });
+    // Fetch all users from auth.users using admin API (bypasses RLS completely)
+    const { data: authUsersData, error: authUsersError } = await supabaseAdmin.auth.admin.listUsers();
 
-    if (profilesError) {
-      console.error('[Admin Users API] Error fetching profiles:', profilesError);
+    if (authUsersError) {
+      console.error('[Admin Users API] Error fetching auth users:', authUsersError);
       return NextResponse.json(
-        { error: 'Failed to fetch profiles', details: profilesError.message },
+        { error: 'Failed to fetch users', details: authUsersError.message },
         { status: 500 }
       );
     }
+
+    const authUsers = authUsersData?.users || [];
+    console.log('[Admin Users API] Fetched auth users:', authUsers.length);
+
+    // Also fetch profiles table to get additional info (full_name, company)
+    const { data: profiles } = await supabaseAdmin
+      .from('profiles')
+      .select('id, full_name, company');
 
     console.log('[Admin Users API] Fetched profiles:', profiles?.length || 0);
 
@@ -110,19 +115,20 @@ export async function GET(request: NextRequest) {
       }
     });
 
-    // Combine profiles with their roles
-    const users = (profiles || []).map((profile: any) => {
-      const role = userRoles?.find(r => r.user_id === profile.id);
-      const lastLogin = lastLoginMap.get(profile.id);
+    // Combine auth users with profiles and roles
+    const users = authUsers.map((authUser: any) => {
+      const profile = profiles?.find(p => p.id === authUser.id);
+      const role = userRoles?.find(r => r.user_id === authUser.id);
+      const lastLogin = lastLoginMap.get(authUser.id);
 
       return {
-        id: profile.id,
-        email: profile.email,
-        full_name: profile.full_name || 'N/A',
+        id: authUser.id,
+        email: authUser.email,
+        full_name: profile?.full_name || authUser.user_metadata?.full_name || 'N/A',
         role: role?.role || 'user',
-        company: profile.company || 'N/A',
-        created_at: profile.created_at,
-        last_login: lastLogin || null,
+        company: profile?.company || authUser.user_metadata?.company || 'N/A',
+        created_at: authUser.created_at,
+        last_login: lastLogin || authUser.last_sign_in_at || null,
         status: 'active' // TODO: Add actual status tracking
       };
     });
