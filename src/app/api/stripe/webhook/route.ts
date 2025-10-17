@@ -216,12 +216,15 @@ async function handleCheckoutComplete(session: Stripe.Checkout.Session) {
       .eq('user_id', supabaseUserId)
 
     if (subscription) {
-      await supabaseAdmin.rpc('log_subscription_change', {
+      const { error: logError } = await supabaseAdmin.rpc('log_subscription_change', {
         p_user_id: supabaseUserId,
         p_subscription_id: subscription.id,
         p_action: 'checkout_completed',
         p_notes: `Checkout completed for ${tier} tier - Email: ${customerEmail}`
-      }).catch(err => console.log('[Webhook] Log function not available:', err.message))
+      })
+      if (logError) {
+        console.log('[Webhook] Log function not available:', logError.message)
+      }
     }
   }
 
