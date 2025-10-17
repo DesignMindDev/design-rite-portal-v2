@@ -156,7 +156,7 @@ async function handleCheckoutComplete(session: Stripe.Checkout.Session) {
       console.log(`[Webhook] Creating new user for email: ${customerEmail}`)
       const { data: newUser, error: createError } = await supabaseAdmin.auth.admin.createUser({
         email: customerEmail,
-        email_confirm: true, // Auto-confirm email for paid users
+        email_confirm: false, // Don't auto-confirm - let user verify via email
         user_metadata: {
           tier: tier,
           source: 'stripe_checkout'
@@ -170,6 +170,31 @@ async function handleCheckoutComplete(session: Stripe.Checkout.Session) {
 
       supabaseUserId = newUser.user.id
       console.log(`[Webhook] Created new user: ${supabaseUserId}`)
+
+      // Send magic link email for password setup
+      console.log(`[Webhook] Sending magic link to: ${customerEmail}`)
+      const { error: magicLinkError } = await supabaseAdmin.auth.admin.generateLink({
+        type: 'magiclink',
+        email: customerEmail,
+        options: {
+          redirectTo: `${process.env.NEXT_PUBLIC_APP_URL}/auth/callback`
+        }
+      })
+
+      if (magicLinkError) {
+        console.error('[Webhook] Failed to send magic link:', magicLinkError)
+        // Try password reset as fallback
+        const { error: resetError } = await supabaseAdmin.auth.resetPasswordForEmail(customerEmail, {
+          redirectTo: `${process.env.NEXT_PUBLIC_APP_URL}/reset-password`
+        })
+        if (resetError) {
+          console.error('[Webhook] Failed to send password reset:', resetError)
+        } else {
+          console.log(`[Webhook] Sent password reset email as fallback`)
+        }
+      } else {
+        console.log(`[Webhook] Magic link sent successfully`)
+      }
 
       // Create user profile
       await supabaseAdmin
