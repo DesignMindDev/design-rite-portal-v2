@@ -3,8 +3,12 @@ import { NextRequest, NextResponse } from 'next/server'
 export const dynamic = 'force-dynamic';
 import fs from 'fs'
 import path from 'path'
+import { requireEmployee } from '@/lib/api-auth'
 
 export async function POST(request: NextRequest) {
+  const auth = await requireEmployee(request);
+  if (auth.error) return auth.error;
+
   try {
     const formData = await request.formData()
     const photo = formData.get('photo') as File

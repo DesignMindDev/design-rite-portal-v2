@@ -2,6 +2,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import Stripe from 'stripe'
 import { createClient } from '@supabase/supabase-js'
+import { requireAuth } from '@/lib/api-auth'
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
   apiVersion: '2025-09-30.clover'
@@ -19,19 +20,12 @@ const supabaseAdmin = createClient(
 )
 
 export async function POST(req: NextRequest) {
+  // AUTHENTICATION CHECK - Use our centralized auth
+  const auth = await requireAuth(req);
+  if (auth.error) return auth.error;
+
   try {
-    // Get auth token from Authorization header
-    const authHeader = req.headers.get('authorization')
-    if (!authHeader) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
-
-    const token = authHeader.replace('Bearer ', '')
-    const { data: { user }, error: userError } = await supabaseAdmin.auth.getUser(token)
-
-    if (userError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
+    const user = auth.user!;
 
     // Get user's subscription to find stripe_customer_id
     const { data: subscription, error: subError } = await supabaseAdmin

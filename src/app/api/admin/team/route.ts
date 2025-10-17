@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from 'next/server'
 export const dynamic = 'force-dynamic';
 import fs from 'fs'
 import path from 'path'
+import { requireEmployee } from '@/lib/api-auth'
 
 const TEAM_DATA_PATH = path.join(process.cwd(), 'data', 'team.json')
 
@@ -80,7 +81,10 @@ function saveTeamData(teamMembers: TeamMember[]) {
   fs.writeFileSync(TEAM_DATA_PATH, JSON.stringify(teamMembers, null, 2))
 }
 
-export async function GET() {
+export async function GET(request: NextRequest) {
+  const auth = await requireEmployee(request);
+  if (auth.error) return auth.error;
+
   try {
     const teamMembers = loadTeamData()
     return NextResponse.json(teamMembers)
@@ -91,6 +95,9 @@ export async function GET() {
 }
 
 export async function POST(request: NextRequest) {
+  const auth = await requireEmployee(request);
+  if (auth.error) return auth.error;
+
   try {
     const body = await request.json()
 
@@ -136,6 +143,9 @@ export async function POST(request: NextRequest) {
 }
 
 export async function PUT(request: NextRequest) {
+  const auth = await requireEmployee(request);
+  if (auth.error) return auth.error;
+
   try {
     const updatedMember: TeamMember = await request.json()
     const teamMembers = loadTeamData()
@@ -156,6 +166,9 @@ export async function PUT(request: NextRequest) {
 }
 
 export async function DELETE(request: NextRequest) {
+  const auth = await requireEmployee(request);
+  if (auth.error) return auth.error;
+
   try {
     const { searchParams } = new URL(request.url)
     const id = searchParams.get('id')

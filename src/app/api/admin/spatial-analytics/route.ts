@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import { requireEmployee } from '@/lib/api-auth';
 
 // Force dynamic rendering for this API route
 export const dynamic = 'force-dynamic';
@@ -47,6 +48,9 @@ interface ErrorAnalysis {
 }
 
 export async function GET(request: NextRequest) {
+  const auth = await requireEmployee(request);
+  if (auth.error) return auth.error;
+
   try {
     const { searchParams } = new URL(request.url);
     const timeRange = searchParams.get('timeRange') || '30d';

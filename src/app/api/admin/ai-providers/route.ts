@@ -4,6 +4,7 @@ export const dynamic = 'force-dynamic';
 import fs from 'fs'
 import path from 'path'
 import { createClient } from '@supabase/supabase-js'
+import { requireEmployee } from '@/lib/api-auth'
 
 const AI_PROVIDERS_PATH = path.join(process.cwd(), 'data', 'ai-providers.json')
 
@@ -161,6 +162,10 @@ async function logProviderChange(action: string, provider: AIProvider) {
 
 // GET - Retrieve AI providers configuration
 export async function GET(request: NextRequest) {
+  // Require employee authentication
+  const auth = await requireEmployee(request)
+  if (auth.error) return auth.error
+
   try {
     const data = loadProvidersData()
 
@@ -185,6 +190,10 @@ export async function GET(request: NextRequest) {
 
 // POST - Create or update AI provider
 export async function POST(request: NextRequest) {
+  // Require employee authentication
+  const auth = await requireEmployee(request)
+  if (auth.error) return auth.error
+
   try {
     const body = await request.json()
     const { action, provider } = body

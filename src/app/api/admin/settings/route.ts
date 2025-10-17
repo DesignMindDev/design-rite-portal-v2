@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from 'next/server'
 export const dynamic = 'force-dynamic';
 import fs from 'fs'
 import path from 'path'
+import { requireEmployee } from '@/lib/api-auth'
 
 const SETTINGS_PATH = path.join(process.cwd(), 'data', 'settings.json')
 
@@ -38,7 +39,10 @@ function loadSettings(): SiteSettings {
   return JSON.parse(data)
 }
 
-export async function GET() {
+export async function GET(request: NextRequest) {
+  const auth = await requireEmployee(request);
+  if (auth.error) return auth.error;
+
   try {
     const settings = loadSettings()
     return NextResponse.json(settings)
@@ -49,6 +53,9 @@ export async function GET() {
 }
 
 export async function PUT(request: NextRequest) {
+  const auth = await requireEmployee(request);
+  if (auth.error) return auth.error;
+
   try {
     const updatedSettings: SiteSettings = await request.json()
     ensureDataDirectory()

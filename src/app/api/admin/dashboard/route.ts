@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import { requireEmployee } from '@/lib/api-auth';
 
 // Force dynamic rendering
 export const dynamic = 'force-dynamic';
@@ -12,6 +13,9 @@ const supabaseServiceKey = process.env.SUPABASE_SERVICE_KEY || process.env.NEXT_
  * Returns stats, users, and recent activity for the /admin/super page
  */
 export async function GET(request: NextRequest) {
+  const auth = await requireEmployee(request);
+  if (auth.error) return auth.error;
+
   try {
     // Create admin client with service role key
     const supabase = createClient(supabaseUrl, supabaseServiceKey, {

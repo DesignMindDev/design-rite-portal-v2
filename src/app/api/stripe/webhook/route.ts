@@ -129,20 +129,82 @@ export async function POST(request: NextRequest) {
 async function handleCheckoutComplete(session: Stripe.Checkout.Session) {
   const userId = session.metadata?.user_id
   const tier = session.metadata?.tier
+  const customerEmail = session.customer_email || session.customer_details?.email
 
-  if (!userId || !tier) {
-    console.error('Missing user_id or tier in checkout session metadata')
+  console.log(`[Webhook] Checkout completed - User: ${userId}, Email: ${customerEmail}, Tier: ${tier}`)
+
+  if (!customerEmail) {
+    console.error('[Webhook] No customer email found in checkout session')
     return
   }
 
-  console.log(`Checkout completed for user ${userId}, tier: ${tier}`)
+  // Check if user exists in auth.users (Supabase Auth)
+  let supabaseUserId = userId
 
-  // Update customer ID if present
-  if (session.customer) {
+  if (!userId) {
+    console.log(`[Webhook] No user_id in metadata, checking if user exists by email: ${customerEmail}`)
+
+    // Check if user already exists in Supabase Auth
+    const { data: existingUser } = await supabaseAdmin.auth.admin.listUsers()
+    const userExists = existingUser?.users.find(u => u.email === customerEmail)
+
+    if (userExists) {
+      supabaseUserId = userExists.id
+      console.log(`[Webhook] Found existing user: ${supabaseUserId}`)
+    } else {
+      // Create new user in Supabase Auth
+      console.log(`[Webhook] Creating new user for email: ${customerEmail}`)
+      const { data: newUser, error: createError } = await supabaseAdmin.auth.admin.createUser({
+        email: customerEmail,
+        email_confirm: true, // Auto-confirm email for paid users
+        user_metadata: {
+          tier: tier,
+          source: 'stripe_checkout'
+        }
+      })
+
+      if (createError || !newUser.user) {
+        console.error('[Webhook] Failed to create user:', createError)
+        return
+      }
+
+      supabaseUserId = newUser.user.id
+      console.log(`[Webhook] Created new user: ${supabaseUserId}`)
+
+      // Create user profile
+      await supabaseAdmin
+        .from('profiles')
+        .insert({
+          id: supabaseUserId,
+          email: customerEmail,
+          full_name: session.customer_details?.name || '',
+          created_at: new Date().toISOString()
+        })
+
+      // Create initial subscription record
+      await supabaseAdmin
+        .from('subscriptions')
+        .insert({
+          user_id: supabaseUserId,
+          tier: 'free', // Will be updated by subscription.created event
+          status: 'incomplete',
+          stripe_customer_id: session.customer as string,
+          is_trial: false,
+          max_documents: 2,
+          source: 'stripe',
+          created_at: new Date().toISOString()
+        })
+
+      console.log(`[Webhook] Created profile and subscription record for new user`)
+    }
+  }
+
+  // Update subscription with customer ID
+  if (session.customer && supabaseUserId) {
     const { data: subscription } = await supabaseAdmin
       .from('subscriptions')
       .select('id')
-      .eq('user_id', userId)
+      .eq('user_id', supabaseUserId)
       .single()
 
     await supabaseAdmin
@@ -151,18 +213,19 @@ async function handleCheckoutComplete(session: Stripe.Checkout.Session) {
         stripe_customer_id: session.customer as string,
         updated_at: new Date().toISOString()
       })
-      .eq('user_id', userId)
+      .eq('user_id', supabaseUserId)
 
     if (subscription) {
       await supabaseAdmin.rpc('log_subscription_change', {
-        p_user_id: userId,
+        p_user_id: supabaseUserId,
         p_subscription_id: subscription.id,
         p_action: 'checkout_completed',
-        p_notes: `Checkout completed for ${tier} tier`
-      })
+        p_notes: `Checkout completed for ${tier} tier - Email: ${customerEmail}`
+      }).catch(err => console.log('[Webhook] Log function not available:', err.message))
     }
   }
 
+  console.log(`[Webhook] Checkout complete handler finished for ${customerEmail}`)
   // Subscription details will be updated via customer.subscription.created event
 }
 
@@ -184,6 +247,7 @@ async function handleSubscriptionCreated(subscription: Stripe.Subscription) {
     .single()
 
   const status = mapStripeStatus(subscription.status)
+  const isTrialing = subscription.status === 'trialing'
 
   // Update subscription record with new schema
   const updateData: any = {
@@ -193,7 +257,16 @@ async function handleSubscriptionCreated(subscription: Stripe.Subscription) {
     stripe_customer_id: subscription.customer as string,
     stripe_price_id: subscription.items.data[0]?.price.id,
     cancel_at_period_end: subscription.cancel_at_period_end || false,
+    is_trial: isTrialing,
+    max_documents: TIER_TO_DOCUMENTS[tier] || 10,
+    source: 'stripe',
     updated_at: new Date().toISOString()
+  }
+
+  // Add trial period data if trialing
+  if (isTrialing && subscription.trial_start && subscription.trial_end) {
+    updateData.trial_start = new Date((subscription.trial_start as number) * 1000).toISOString()
+    updateData.trial_end = new Date((subscription.trial_end as number) * 1000).toISOString()
   }
 
   // Add optional fields if they exist

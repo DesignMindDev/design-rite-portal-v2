@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from 'next/server'
 export const dynamic = 'force-dynamic';
 import fs from 'fs'
 import path from 'path'
+import { requireEmployee } from '@/lib/api-auth'
 
 const BLOG_PATH = path.join(process.cwd(), 'data', 'blog-posts.json')
 
@@ -43,7 +44,10 @@ function saveBlogPosts(posts: BlogPost[]) {
   fs.writeFileSync(BLOG_PATH, JSON.stringify(posts, null, 2))
 }
 
-export async function GET() {
+export async function GET(request: NextRequest) {
+  const auth = await requireEmployee(request)
+  if (auth.error) return auth.error
+
   try {
     const posts = loadBlogPosts()
     return NextResponse.json(posts)
@@ -54,6 +58,9 @@ export async function GET() {
 }
 
 export async function POST(request: NextRequest) {
+  const auth = await requireEmployee(request)
+  if (auth.error) return auth.error
+
   try {
     const newPost: BlogPost = await request.json()
     const posts = loadBlogPosts()
@@ -70,6 +77,9 @@ export async function POST(request: NextRequest) {
 }
 
 export async function PUT(request: NextRequest) {
+  const auth = await requireEmployee(request)
+  if (auth.error) return auth.error
+
   try {
     const updatedPost: BlogPost = await request.json()
     const posts = loadBlogPosts()
@@ -90,6 +100,9 @@ export async function PUT(request: NextRequest) {
 }
 
 export async function DELETE(request: NextRequest) {
+  const auth = await requireEmployee(request)
+  if (auth.error) return auth.error
+
   try {
     const { searchParams } = new URL(request.url)
     const id = searchParams.get('id')

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import Stripe from 'stripe'
 import { createClient } from '@supabase/supabase-js'
+import { requireAuth } from '@/lib/api-auth'
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
   apiVersion: '2025-09-30.clover'
@@ -18,6 +19,9 @@ const supabase = createClient(
 )
 
 export async function POST(request: NextRequest) {
+  // AUTHENTICATION CHECK
+  const auth = await requireAuth(request);
+  if (auth.error) return auth.error;
   try {
     const { priceId, tier, userId, email } = await request.json()
 
@@ -55,7 +59,7 @@ export async function POST(request: NextRequest) {
         .eq('user_id', userId)
     }
 
-    // Create Checkout Session
+    // Create Checkout Session with 7-day trial
     const session = await stripe.checkout.sessions.create({
       customer: customerId,
       line_items: [
@@ -65,13 +69,14 @@ export async function POST(request: NextRequest) {
         }
       ],
       mode: 'subscription',
-      success_url: `${process.env.NEXT_PUBLIC_APP_URL}/subscription?success=true&session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${process.env.NEXT_PUBLIC_APP_URL}/subscription?canceled=true`,
+      success_url: `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3005'}/checkout-success?session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3005'}/checkout-cancel`,
       metadata: {
         user_id: userId,
         tier: tier
       },
       subscription_data: {
+        trial_period_days: 7, // 7-day free trial
         metadata: {
           user_id: userId,
           tier: tier

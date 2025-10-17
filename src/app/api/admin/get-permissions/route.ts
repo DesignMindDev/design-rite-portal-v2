@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import { requireEmployee } from '@/lib/api-auth';
 
 // Force dynamic rendering
 export const dynamic = 'force-dynamic';
@@ -31,8 +32,11 @@ type Permission =
  * Returns permissions based on user role
  */
 export async function GET(request: NextRequest) {
+  const auth = await requireEmployee(request);
+  if (auth.error) return auth.error;
+
   try {
-    const { searchParams } = new URL(request.url);
+    const { searchParams} = new URL(request.url);
     const userId = searchParams.get('userId');
 
     if (!userId) {
