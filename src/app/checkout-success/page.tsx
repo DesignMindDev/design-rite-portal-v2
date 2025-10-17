@@ -1,29 +1,12 @@
 'use client';
 
-import { Suspense, useEffect, useState } from 'react';
+import { Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 
 function CheckoutSuccessContent() {
   const searchParams = useSearchParams();
   const sessionId = searchParams?.get('session_id');
-  const [countdown, setCountdown] = useState(10);
-
-  useEffect(() => {
-    // Countdown timer for auto-redirect
-    const timer = setInterval(() => {
-      setCountdown((prev) => {
-        if (prev <= 1) {
-          clearInterval(timer);
-          // Redirect to auth page
-          window.location.href = '/auth?message=check_email';
-        }
-        return prev - 1;
-      });
-    }, 1000);
-
-    return () => clearInterval(timer);
-  }, []);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-green-50 via-white to-blue-50 flex items-center justify-center px-4">
@@ -92,16 +75,16 @@ function CheckoutSuccessContent() {
 
         {/* CTA Buttons */}
         <div className="space-y-4">
+          <p className="text-sm text-gray-600 mb-6">
+            Once you've set your password via the email link, you can sign in below.
+          </p>
+
           <Link
             href="/auth"
             className="inline-block bg-gradient-to-r from-blue-600 to-purple-600 text-white px-8 py-4 rounded-lg font-semibold text-lg hover:from-blue-700 hover:to-purple-700 transition-all shadow-lg hover:shadow-xl"
           >
             Sign In to Your Account →
           </Link>
-
-          <p className="text-sm text-gray-600">
-            Redirecting to login in {countdown} seconds...
-          </p>
 
           <p className="text-xs text-gray-500 mt-4">
             Didn't receive an email? Check your spam folder or{' '}
