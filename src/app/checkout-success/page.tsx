@@ -54,42 +54,54 @@ function CheckoutSuccessContent() {
           </div>
         </div>
 
+        {/* Primary Call-to-Action - Check Email */}
+        <div className="bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-2xl p-8 mb-6 max-w-2xl mx-auto shadow-2xl">
+          <div className="text-5xl mb-4">📧</div>
+          <h2 className="font-bold text-2xl mb-3">Check Your Email Now!</h2>
+          <p className="text-lg mb-4 text-blue-100">
+            We've sent you a password setup email. Click the link to set your password and access your account.
+          </p>
+          <p className="text-sm text-blue-200">
+            Email can take 2-5 minutes to arrive. Check your spam folder if you don't see it.
+          </p>
+        </div>
+
         {/* Next Steps */}
-        <div className="bg-blue-50 border border-blue-200 rounded-xl p-6 mb-8 max-w-2xl mx-auto">
-          <h2 className="font-bold text-lg mb-4 text-blue-900">What's Next?</h2>
+        <div className="bg-white border border-gray-200 rounded-xl p-6 mb-8 max-w-2xl mx-auto shadow-sm">
+          <h2 className="font-bold text-lg mb-4 text-gray-900">What Happens Next?</h2>
           <ol className="text-left space-y-3 text-gray-700">
             <li className="flex items-start">
               <span className="bg-blue-600 text-white rounded-full w-6 h-6 flex items-center justify-center mr-3 flex-shrink-0 font-semibold text-sm">1</span>
-              <span><strong>Check your email</strong> - We've sent a welcome email with your account details</span>
+              <span><strong>Check your email</strong> for a "Reset Your Password" message from Supabase Auth</span>
             </li>
             <li className="flex items-start">
-              <span className="bg-blue-600 text-white rounded-full w-6 h-6 flex items-center justify-center mr-3 flex-shrink-0 font-semibold text-sm">2</span>
-              <span><strong>Set your password</strong> - Click the link in the email to access your account</span>
+              <span className="bg-purple-600 text-white rounded-full w-6 h-6 flex items-center justify-center mr-3 flex-shrink-0 font-semibold text-sm">2</span>
+              <span><strong>Click the link</strong> in the email to set your password</span>
             </li>
             <li className="flex items-start">
-              <span className="bg-blue-600 text-white rounded-full w-6 h-6 flex items-center justify-center mr-3 flex-shrink-0 font-semibold text-sm">3</span>
-              <span><strong>Start designing</strong> - Explore AI tools, create assessments, and streamline your workflow</span>
+              <span className="bg-green-600 text-white rounded-full w-6 h-6 flex items-center justify-center mr-3 flex-shrink-0 font-semibold text-sm">3</span>
+              <span><strong>Sign in below</strong> after setting your password</span>
             </li>
           </ol>
         </div>
 
-        {/* CTA Buttons */}
-        <div className="space-y-4">
-          <p className="text-sm text-gray-600 mb-6">
-            Once you've set your password via the email link, you can sign in below.
+        {/* Secondary CTA - Sign In Link (De-emphasized) */}
+        <div className="space-y-3">
+          <p className="text-sm text-gray-500">
+            Already set your password?
           </p>
 
           <Link
             href="/auth"
-            className="inline-block bg-gradient-to-r from-blue-600 to-purple-600 text-white px-8 py-4 rounded-lg font-semibold text-lg hover:from-blue-700 hover:to-purple-700 transition-all shadow-lg hover:shadow-xl"
+            className="inline-block text-blue-600 hover:text-blue-700 underline text-sm font-medium"
           >
-            Sign In to Your Account →
+            Sign in to your account
           </Link>
 
-          <p className="text-xs text-gray-500 mt-4">
-            Didn't receive an email? Check your spam folder or{' '}
+          <p className="text-xs text-gray-400 mt-4">
+            Didn't receive an email? Check your spam folder or wait 5 minutes. Still nothing?{' '}
             <a href="mailto:support@design-rite.com" className="text-blue-600 hover:underline">
-              contact support
+              Contact support
             </a>
           </p>
         </div>
