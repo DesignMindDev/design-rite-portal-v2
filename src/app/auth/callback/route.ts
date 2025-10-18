@@ -1,4 +1,4 @@
-import { createClient } from '@supabase/ssr'
+import { createServerClient } from '@supabase/ssr'
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 import { cookies } from 'next/headers'
@@ -19,7 +19,7 @@ export async function GET(request: NextRequest) {
   if (token_hash && type) {
     const cookieStore = cookies()
 
-    const supabase = createClient(
+    const supabase = createServerClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
       {
