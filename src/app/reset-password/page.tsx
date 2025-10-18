@@ -19,38 +19,63 @@ export default function ResetPasswordPage() {
   useEffect(() => {
     // Check if there's a hash in the URL (password reset token)
     const hashParams = new URLSearchParams(window.location.hash.substring(1))
-    const hasToken = hashParams.has('access_token') || hashParams.has('token') || hashParams.has('type')
+    const accessToken = hashParams.get('access_token')
+    const refreshToken = hashParams.get('refresh_token')
+    const recoveryType = hashParams.get('type')
 
     console.log('[Reset Password] Full URL:', window.location.href)
     console.log('[Reset Password] URL hash:', window.location.hash)
-    console.log('[Reset Password] Has token:', hasToken)
-    console.log('[Reset Password] Hash params:', Object.fromEntries(hashParams.entries()))
+    console.log('[Reset Password] Has recovery token:', !!accessToken)
+    console.log('[Reset Password] Type:', recoveryType)
 
-    // If there's a token in the URL, Supabase will process it automatically
-    // Wait a bit for Supabase to process the token before checking session
-    const checkSession = async () => {
-      // Give Supabase time to process the token from URL
-      if (hasToken) {
-        console.log('[Reset Password] Waiting 1 second for Supabase to process token...')
-        await new Promise(resolve => setTimeout(resolve, 1000))
-      }
+    const processRecoveryToken = async () => {
+      // If there's a recovery token, establish session
+      if (accessToken && refreshToken && recoveryType === 'recovery') {
+        console.log('[Reset Password] Processing recovery token...')
 
-      const { data: { session }, error } = await supabase.auth.getSession()
-      console.log('[Reset Password] Session after wait:', session ? 'EXISTS' : 'NO SESSION')
-      console.log('[Reset Password] Session error:', error)
+        try {
+          // Set the session using the tokens from the URL
+          const { data: sessionData, error: sessionError } = await supabase.auth.setSession({
+            access_token: accessToken,
+            refresh_token: refreshToken
+          })
 
-      // Only redirect if there's no token in URL and no session
-      if (!session && !hasToken) {
-        console.log('[Reset Password] No session and no token - redirecting to forgot-password')
-        toast.error('Invalid or expired reset link')
-        router.push('/forgot-password')
+          if (sessionError) {
+            console.error('[Reset Password] Session error:', sessionError)
+            toast.error('Invalid or expired reset link')
+            router.push('/forgot-password')
+            return
+          }
+
+          if (sessionData.session) {
+            console.log('[Reset Password] ✅ Session established successfully')
+            setLoading(false)
+          } else {
+            console.error('[Reset Password] No session created')
+            toast.error('Invalid or expired reset link')
+            router.push('/forgot-password')
+          }
+        } catch (error: any) {
+          console.error('[Reset Password] Error processing token:', error)
+          toast.error('Failed to verify reset link')
+          router.push('/forgot-password')
+        }
       } else {
-        console.log('[Reset Password] Valid - showing form')
+        // No token in URL, check if already has session
+        const { data: { session } } = await supabase.auth.getSession()
+
+        if (!session) {
+          console.log('[Reset Password] No session and no token - redirecting')
+          toast.error('Invalid or expired reset link')
+          router.push('/forgot-password')
+        } else {
+          console.log('[Reset Password] Existing session found')
+          setLoading(false)
+        }
       }
-      setLoading(false)
     }
 
-    checkSession()
+    processRecoveryToken()
   }, [router])
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -127,16 +152,16 @@ export default function ResetPasswordPage() {
             <div className="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
               <Lock className="w-6 h-6 text-primary" />
             </div>
-            <h2 className="text-2xl font-bold text-gray-900 mb-2">Reset Your Password</h2>
+            <h2 className="text-2xl font-bold text-gray-900 mb-2">Create Your Password</h2>
             <p className="text-gray-600 text-sm">
-              Enter your new password below
+              Choose a secure password for your account
             </p>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
               <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-2">
-                New Password *
+                Password *
               </label>
               <div className="relative">
                 <input
@@ -169,7 +194,7 @@ export default function ResetPasswordPage() {
 
             <div>
               <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700 mb-2">
-                Confirm New Password *
+                Confirm Password *
               </label>
               <div className="relative">
                 <input
@@ -211,7 +236,7 @@ export default function ResetPasswordPage() {
                   Updating Password...
                 </span>
               ) : (
-                'Update Password'
+                'Create Password'
               )}
             </button>
           </form>
