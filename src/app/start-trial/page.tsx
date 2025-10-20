@@ -232,28 +232,26 @@ export default function StartTrialPage() {
                         Email: {planData.isCustom ? planData.contactEmail : ''}
                       </p>
                     </>
-                  ) : (
+                  ) : !planData.isCustom ? (
                     <>
-                      {!planData.isCustom && planData.regularPrice && (
+                      {planData.regularPrice && (
                         <div className="text-gray-400 line-through text-lg mb-1">
                           ${planData.regularPrice}/{planData.billingPeriod === 'year' ? 'yr' : 'mo'}
                         </div>
                       )}
                       <div className="text-4xl font-bold text-blue-600 mb-1">
-                        ${!planData.isCustom ? planData.price.toFixed(2) : planData.price}
+                        ${planData.price.toFixed(2)}
                       </div>
-                      {!planData.isCustom && (
-                        <div className="text-gray-600 text-sm mb-2">
-                          per {planData.billingPeriod === 'year' ? 'year' : 'month'}
-                        </div>
-                      )}
-                      {!planData.isCustom && planData.savings && (
+                      <div className="text-gray-600 text-sm mb-2">
+                        per {planData.billingPeriod === 'year' ? 'year' : 'month'}
+                      </div>
+                      {planData.savings && (
                         <div className="inline-block bg-green-100 text-green-700 px-3 py-1 rounded-full text-xs font-semibold">
                           {planData.savings}
                         </div>
                       )}
                     </>
-                  )}
+                  ) : null}
                 </div>
 
                 <ul className="space-y-3">
