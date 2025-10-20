@@ -15,7 +15,8 @@ export default function StartTrialPage() {
       price: 49,
       priceId: process.env.NEXT_PUBLIC_STRIPE_PRICE_STARTER!,
       savings: 'Save $49/mo',
-      billingPeriod: 'month',
+      billingPeriod: 'month' as const,
+      isCustom: false,
       features: [
         'AI-powered proposals',
         '3,000+ product database',
@@ -29,7 +30,8 @@ export default function StartTrialPage() {
       price: 470.40,
       priceId: process.env.NEXT_PUBLIC_STRIPE_PRICE_STARTER_ANNUAL!,
       savings: 'Save $705.60/year',
-      billingPeriod: 'year',
+      billingPeriod: 'year' as const,
+      isCustom: false,
       features: [
         'Everything in Starter Monthly',
         '20% prepay discount',
@@ -42,7 +44,8 @@ export default function StartTrialPage() {
       price: 199,
       priceId: process.env.NEXT_PUBLIC_STRIPE_PRICE_PROFESSIONAL!,
       savings: 'Save $199/mo',
-      billingPeriod: 'month',
+      billingPeriod: 'month' as const,
+      isCustom: false,
       features: [
         'Everything in Starter',
         'Unlimited quotes',
@@ -57,7 +60,8 @@ export default function StartTrialPage() {
       price: 1915.20,
       priceId: process.env.NEXT_PUBLIC_STRIPE_PRICE_PROFESSIONAL_ANNUAL!,
       savings: 'Save $2,872/year',
-      billingPeriod: 'year',
+      billingPeriod: 'year' as const,
+      isCustom: false,
       features: [
         'Everything in Professional Monthly',
         '20% prepay discount',
@@ -78,7 +82,7 @@ export default function StartTrialPage() {
         'Custom integrations'
       ]
     }
-  };
+  } as const;
 
   const handleStartTrial = async () => {
     setLoading(true);
