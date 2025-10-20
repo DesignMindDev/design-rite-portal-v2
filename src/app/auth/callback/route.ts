@@ -87,12 +87,20 @@ export async function GET(request: NextRequest) {
       }
 
       // Token expired or invalid, but session exists - redirect anyway
-      if (tokenError?.code === 'otp_expired' && session.user.email) {
-        console.log('[Auth Callback] Token expired but session exists, proceeding')
-        if (type === 'invite' || type === 'magiclink') {
-          return NextResponse.redirect(`${origin}/setup-password`)
+      if (tokenError?.code === 'otp_expired') {
+        console.log('[Auth Callback] Token expired (likely duplicate request)')
+
+        // Check if we now have a valid session (might have been set by first request)
+        const { data: { session: currentSession } } = await supabase.auth.getSession()
+        if (currentSession?.user?.email) {
+          console.log('[Auth Callback] Session exists for:', currentSession.user.email, '- proceeding to setup')
+          if (type === 'invite' || type === 'magiclink') {
+            return NextResponse.redirect(`${origin}/setup-password`)
+          }
+          return NextResponse.redirect(`${origin}/dashboard`)
         }
-        return NextResponse.redirect(`${origin}/dashboard`)
+
+        console.log('[Auth Callback] Token expired and no session found - showing error')
       }
     }
 
@@ -108,11 +116,16 @@ export async function GET(request: NextRequest) {
 
       // ✅ FIX: If token expired but user might be authenticated, check again
       if (error.message?.includes('expired') || error.code === 'otp_expired') {
+        console.log('[Auth Callback] Token expired (likely duplicate request) - checking for existing session')
         const { data: { session: retrySession } } = await supabase.auth.getSession()
-        if (retrySession) {
-          console.log('[Auth Callback] Token expired but session exists, proceeding')
-          return NextResponse.redirect(`${origin}/setup-password`)
+        if (retrySession?.user?.email) {
+          console.log('[Auth Callback] Session exists for:', retrySession.user.email, '- proceeding to setup')
+          if (type === 'invite' || type === 'magiclink') {
+            return NextResponse.redirect(`${origin}/setup-password`)
+          }
+          return NextResponse.redirect(`${origin}/dashboard`)
         }
+        console.log('[Auth Callback] Token expired and no session found - showing error')
       }
 
       return NextResponse.redirect(`${origin}/auth?error=verification_failed&message=${encodeURIComponent(error.message)}`)
