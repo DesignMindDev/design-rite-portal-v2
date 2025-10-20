@@ -260,22 +260,23 @@ export default function AuthPage() {
             </form>
 
             <div className="mt-6 text-center">
-              <button
-                onClick={() => setIsSignUp(!isSignUp)}
-                className="text-sm text-gray-600 hover:text-gray-900 transition-colors"
-              >
-                {isSignUp ? (
-                  <>
-                    Already have an account?{' '}
-                    <span className="text-primary font-semibold hover:underline">Sign In</span>
-                  </>
-                ) : (
-                  <>
-                    Don't have an account?{' '}
-                    <span className="text-primary font-semibold hover:underline">Sign Up Free</span>
-                  </>
-                )}
-              </button>
+              {isSignUp ? (
+                <button
+                  onClick={() => setIsSignUp(false)}
+                  className="text-sm text-gray-600 hover:text-gray-900 transition-colors"
+                >
+                  Already have an account?{' '}
+                  <span className="text-primary font-semibold hover:underline">Sign In</span>
+                </button>
+              ) : (
+                <a
+                  href="https://design-rite.com/platform-access"
+                  className="text-sm text-gray-600 hover:text-gray-900 transition-colors"
+                >
+                  Don't have an account?{' '}
+                  <span className="text-primary font-semibold hover:underline">Start Free Trial</span>
+                </a>
+              )}
             </div>
 
             {isSignUp && (

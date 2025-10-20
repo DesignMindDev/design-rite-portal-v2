@@ -6,48 +6,90 @@ import { toast } from 'sonner';
 export default function StartTrialPage() {
   const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(false);
-  const [plan, setPlan] = useState<'starter' | 'pro' | 'enterprise'>('starter');
+  const [plan, setPlan] = useState<'starter' | 'starterAnnual' | 'pro' | 'proAnnual' | 'enterprise'>('starter');
 
   const plans = {
     starter: {
       name: 'Starter',
+      regularPrice: 98,
       price: 49,
       priceId: process.env.NEXT_PUBLIC_STRIPE_PRICE_STARTER!,
+      savings: 'Save $49/mo',
+      billingPeriod: 'month',
       features: [
-        '10 documents storage',
-        'Basic AI assistant',
-        'Business tools',
+        'AI-powered proposals',
+        '3,000+ product database',
+        'Professional templates',
         'Email support'
+      ]
+    },
+    starterAnnual: {
+      name: 'Starter Annual',
+      regularPrice: 1176,
+      price: 470.40,
+      priceId: process.env.NEXT_PUBLIC_STRIPE_PRICE_STARTER_ANNUAL!,
+      savings: 'Save $705.60/year',
+      billingPeriod: 'year',
+      features: [
+        'Everything in Starter Monthly',
+        '20% prepay discount',
+        'Lock in launch pricing'
       ]
     },
     pro: {
       name: 'Professional',
+      regularPrice: 399,
       price: 199,
       priceId: process.env.NEXT_PUBLIC_STRIPE_PRICE_PROFESSIONAL!,
+      savings: 'Save $199/mo',
+      billingPeriod: 'month',
       features: [
-        '50 documents storage',
-        'Advanced AI assistant',
-        'Voltage calculator',
-        'Analytics dashboard',
-        'Priority support'
+        'Everything in Starter',
+        'Unlimited quotes',
+        'Priority support',
+        'Advanced analytics',
+        'Custom branding'
+      ]
+    },
+    proAnnual: {
+      name: 'Professional Annual',
+      regularPrice: 4788,
+      price: 1915.20,
+      priceId: process.env.NEXT_PUBLIC_STRIPE_PRICE_PROFESSIONAL_ANNUAL!,
+      savings: 'Save $2,872/year',
+      billingPeriod: 'year',
+      features: [
+        'Everything in Professional Monthly',
+        '20% prepay discount',
+        'Lock in launch pricing'
       ]
     },
     enterprise: {
       name: 'Enterprise',
-      price: 499,
-      priceId: process.env.NEXT_PUBLIC_STRIPE_PRICE_ENTERPRISE!,
+      price: 'Contact Us',
+      contactEmail: 'subscriptions@design-rite.com',
+      isCustom: true,
       features: [
-        'Unlimited documents',
-        'Full AI capabilities',
-        'Custom integrations',
-        'Dedicated support',
-        'Team collaboration'
+        'White-label platform',
+        'Custom AI training',
+        'Dedicated account manager',
+        'API access',
+        'Team collaboration',
+        'Custom integrations'
       ]
     }
   };
 
   const handleStartTrial = async () => {
     setLoading(true);
+
+    // Check if Enterprise plan selected
+    if (plan === 'enterprise') {
+      toast.error('Please contact sales for Enterprise pricing');
+      window.location.href = 'mailto:subscriptions@design-rite.com?subject=Enterprise Plan Inquiry';
+      setLoading(false);
+      return;
+    }
 
     // Basic email validation
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -65,6 +107,9 @@ export default function StartTrialPage() {
     }
 
     try {
+      // Determine tier based on plan selection
+      let tier = plan.includes('starter') ? 'starter' : 'professional';
+
       // Note: For new users (no account yet), we'll use customer_email in checkout
       // The webhook will create the account when checkout completes
       const response = await fetch('/api/stripe/create-public-checkout', {
@@ -73,7 +118,7 @@ export default function StartTrialPage() {
         body: JSON.stringify({
           email,
           priceId: plans[plan].priceId,
-          tier: plan
+          tier: tier
         })
       });
 
@@ -107,43 +152,87 @@ export default function StartTrialPage() {
         </div>
 
         {/* Plan Selection */}
-        <div className="grid md:grid-cols-3 gap-6 mb-8">
-          {Object.entries(plans).map(([key, planData]) => (
-            <div
-              key={key}
-              onClick={() => setPlan(key as typeof plan)}
-              className={`relative cursor-pointer p-6 rounded-xl border-2 transition-all ${
-                plan === key
-                  ? 'border-blue-600 bg-blue-50 shadow-xl scale-105'
-                  : 'border-gray-200 bg-white hover:border-blue-300 hover:shadow-lg'
-              }`}
-            >
-              {plan === key && (
-                <div className="absolute -top-3 left-1/2 transform -translate-x-1/2 bg-blue-600 text-white px-4 py-1 rounded-full text-sm font-semibold">
-                  Selected
-                </div>
-              )}
+        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+          {Object.entries(plans).map(([key, planData]) => {
+            const isEnterprise = planData.isCustom;
 
-              <div className="text-center mb-4">
-                <h3 className="text-2xl font-bold mb-2">{planData.name}</h3>
-                <div className="text-4xl font-bold text-blue-600 mb-1">
-                  ${planData.price}
+            return (
+              <div
+                key={key}
+                onClick={() => !isEnterprise && setPlan(key as typeof plan)}
+                className={`relative ${!isEnterprise ? 'cursor-pointer' : ''} p-6 rounded-xl border-2 transition-all ${
+                  plan === key && !isEnterprise
+                    ? 'border-blue-600 bg-blue-50 shadow-xl scale-105'
+                    : 'border-gray-200 bg-white hover:border-blue-300 hover:shadow-lg'
+                }`}
+              >
+                {/* Grand Opening Badge */}
+                {!isEnterprise && planData.regularPrice && (
+                  <div className="absolute -top-3 right-4 bg-gradient-to-r from-red-500 to-orange-500 text-white px-3 py-1 rounded-full text-xs font-bold shadow-lg">
+                    🎉 50% OFF - Limited Time!
+                  </div>
+                )}
+
+                {/* Selected Badge */}
+                {plan === key && !isEnterprise && (
+                  <div className="absolute -top-3 left-1/2 transform -translate-x-1/2 bg-blue-600 text-white px-4 py-1 rounded-full text-sm font-semibold">
+                    Selected
+                  </div>
+                )}
+
+                <div className="text-center mb-4">
+                  <h3 className="text-2xl font-bold mb-2">{planData.name}</h3>
+
+                  {isEnterprise ? (
+                    <>
+                      <div className="text-3xl font-bold text-gray-900 mb-2">
+                        Custom Pricing
+                      </div>
+                      <a
+                        href={`mailto:${planData.contactEmail}`}
+                        className="inline-block bg-gradient-to-r from-purple-600 to-blue-600 text-white px-6 py-2 rounded-lg font-semibold hover:from-purple-700 hover:to-blue-700 transition-all text-sm"
+                      >
+                        Contact Sales
+                      </a>
+                      <p className="text-xs text-gray-600 mt-2">
+                        Email: {planData.contactEmail}
+                      </p>
+                    </>
+                  ) : (
+                    <>
+                      {planData.regularPrice && (
+                        <div className="text-gray-400 line-through text-lg mb-1">
+                          ${planData.regularPrice}/{planData.billingPeriod === 'year' ? 'yr' : 'mo'}
+                        </div>
+                      )}
+                      <div className="text-4xl font-bold text-blue-600 mb-1">
+                        ${typeof planData.price === 'number' ? planData.price.toFixed(2) : planData.price}
+                      </div>
+                      <div className="text-gray-600 text-sm mb-2">
+                        per {planData.billingPeriod === 'year' ? 'year' : 'month'}
+                      </div>
+                      {planData.savings && (
+                        <div className="inline-block bg-green-100 text-green-700 px-3 py-1 rounded-full text-xs font-semibold">
+                          {planData.savings}
+                        </div>
+                      )}
+                    </>
+                  )}
                 </div>
-                <div className="text-gray-600 text-sm">per month</div>
+
+                <ul className="space-y-3">
+                  {planData.features.map((feature, idx) => (
+                    <li key={idx} className="flex items-start">
+                      <svg className="w-5 h-5 text-green-500 mr-2 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                      </svg>
+                      <span className="text-gray-700 text-sm">{feature}</span>
+                    </li>
+                  ))}
+                </ul>
               </div>
-
-              <ul className="space-y-3">
-                {planData.features.map((feature, idx) => (
-                  <li key={idx} className="flex items-start">
-                    <svg className="w-5 h-5 text-green-500 mr-2 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                    </svg>
-                    <span className="text-gray-700 text-sm">{feature}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          ))}
+            );
+          })}
         </div>
 
         {/* Email & CTA */}
