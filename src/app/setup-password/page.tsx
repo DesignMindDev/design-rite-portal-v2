@@ -40,13 +40,26 @@ export default function SetupPasswordPage() {
     })
   }, [password])
 
-  const checkUser = async () => {
+  const checkUser = async (retryCount = 0) => {
     try {
-      console.log('[Setup Password] Checking for user session...')
+      console.log('[Setup Password] Checking for user session... (attempt', retryCount + 1, ')')
+
+      // Get session first to check if cookies are available
+      const { data: { session } } = await supabase.auth.getSession()
+      console.log('[Setup Password] Session check:', session ? 'Session found' : 'No session')
+
       const { data: { user }, error } = await supabase.auth.getUser()
 
       if (error) {
         console.error('[Setup Password] Error getting user:', error)
+
+        // Retry up to 3 times with delays (cookies might not be ready yet)
+        if (retryCount < 3) {
+          console.log('[Setup Password] Retrying in', (retryCount + 1) * 500, 'ms...')
+          setTimeout(() => checkUser(retryCount + 1), (retryCount + 1) * 500)
+          return
+        }
+
         toast.error('Auth session missing! Please use the invite link from your email.')
         setTimeout(() => router.push('/auth'), 2000)
         return
@@ -54,16 +67,32 @@ export default function SetupPasswordPage() {
 
       if (!user) {
         console.error('[Setup Password] No user found in session')
+
+        // Retry up to 3 times with delays (cookies might not be ready yet)
+        if (retryCount < 3) {
+          console.log('[Setup Password] Retrying in', (retryCount + 1) * 500, 'ms...')
+          setTimeout(() => checkUser(retryCount + 1), (retryCount + 1) * 500)
+          return
+        }
+
         toast.error('Auth session missing! Please use the invite link from your email.')
         setTimeout(() => router.push('/auth'), 2000)
         return
       }
 
-      console.log('[Setup Password] User session found:', user.email)
+      console.log('[Setup Password] ✅ User session found:', user.email)
       setUser(user)
       setLoading(false)
     } catch (error) {
       console.error('[Setup Password] Exception checking user:', error)
+
+      // Retry up to 3 times with delays
+      if (retryCount < 3) {
+        console.log('[Setup Password] Retrying in', (retryCount + 1) * 500, 'ms...')
+        setTimeout(() => checkUser(retryCount + 1), (retryCount + 1) * 500)
+        return
+      }
+
       toast.error('Auth session missing! Please use the invite link from your email.')
       setTimeout(() => router.push('/auth'), 2000)
     }
