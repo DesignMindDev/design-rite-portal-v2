@@ -4,15 +4,23 @@ import type { NextRequest } from 'next/server'
 import { cookies } from 'next/headers'
 
 export async function GET(request: NextRequest) {
-  const { searchParams, origin } = new URL(request.url)
+  const { searchParams } = new URL(request.url)
   const token_hash = searchParams.get('token_hash')
   const type = searchParams.get('type')
   const next = searchParams.get('next') ?? '/setup-password'
+
+  // ✅ FIX: Use environment variable or host header, not URL origin
+  // In production, Render might show internal localhost:10000 in request.url
+  const origin = process.env.NEXT_PUBLIC_APP_URL ||
+                 (request.headers.get('host')?.startsWith('localhost')
+                   ? 'http://localhost:3001'
+                   : `https://${request.headers.get('host')}`)
 
   console.log('[Auth Callback] Received request:', {
     type,
     has_token: !!token_hash,
     origin,
+    host: request.headers.get('host'),
     full_url: request.url
   })
 
