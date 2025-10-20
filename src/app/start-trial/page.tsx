@@ -135,6 +135,15 @@ export default function StartTrialPage() {
       // Determine tier based on plan selection
       let tier = plan.includes('starter') ? 'starter' : 'professional';
 
+      // Get the selected plan (we know it's not enterprise at this point)
+      const selectedPlan = plans[plan];
+      if (selectedPlan.isCustom) {
+        // This shouldn't happen due to the check above, but TypeScript needs it
+        toast.error('Enterprise plans require contacting sales');
+        setLoading(false);
+        return;
+      }
+
       // Note: For new users (no account yet), we'll use customer_email in checkout
       // The webhook will create the account when checkout completes
       const response = await fetch('/api/stripe/create-public-checkout', {
@@ -142,7 +151,7 @@ export default function StartTrialPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           email,
-          priceId: plans[plan].priceId,
+          priceId: selectedPlan.priceId,
           tier: tier
         })
       });
