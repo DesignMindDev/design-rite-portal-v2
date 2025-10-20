@@ -68,6 +68,15 @@ export async function GET(request: NextRequest) {
         if (tokenData.user.email !== session.user.email) {
           console.log('[Auth Callback] Token user differs from session user - clearing old session')
           await supabase.auth.signOut()
+
+          // Set the new session explicitly after signing out old one
+          if (tokenData.session) {
+            console.log('[Auth Callback] Setting new session for:', tokenData.user.email)
+            await supabase.auth.setSession({
+              access_token: tokenData.session.access_token,
+              refresh_token: tokenData.session.refresh_token,
+            })
+          }
         }
 
         // Redirect to password setup with correct session
@@ -110,6 +119,26 @@ export async function GET(request: NextRequest) {
     }
 
     console.log('[Auth Callback] Token verified successfully, user:', data.user?.email)
+
+    // ✅ CRITICAL FIX: verifyOtp returns session data but doesn't persist cookies automatically
+    // We need to explicitly set the session using setSession to persist cookies
+    if (data.session) {
+      console.log('[Auth Callback] Setting session explicitly to persist cookies')
+      const { error: sessionError } = await supabase.auth.setSession({
+        access_token: data.session.access_token,
+        refresh_token: data.session.refresh_token,
+      })
+
+      if (sessionError) {
+        console.error('[Auth Callback] Error setting session:', sessionError)
+        return NextResponse.redirect(`${origin}/auth?error=session_error&message=${encodeURIComponent(sessionError.message)}`)
+      }
+
+      console.log('[Auth Callback] ✅ Session cookies set for:', data.user?.email)
+    } else {
+      console.error('[Auth Callback] ⚠️ Token verified but no session returned!')
+      return NextResponse.redirect(`${origin}/auth?error=no_session&message=Token+verified+but+no+session+created`)
+    }
 
     // Handle both magic link and invite flows
     if (type === 'invite') {
