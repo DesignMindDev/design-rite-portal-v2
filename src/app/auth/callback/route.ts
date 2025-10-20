@@ -37,7 +37,21 @@ export async function GET(request: NextRequest) {
       }
     )
 
-    console.log('[Auth Callback] Verifying token with type:', type)
+    // ✅ FIX: Check if user is already authenticated (token already used)
+    const { data: { session } } = await supabase.auth.getSession()
+
+    if (session) {
+      console.log('[Auth Callback] User already authenticated, skipping token verification')
+      console.log('[Auth Callback] Existing session for user:', session.user.email)
+
+      // Redirect based on type
+      if (type === 'invite' || type === 'magiclink') {
+        return NextResponse.redirect(`${origin}/setup-password`)
+      }
+      return NextResponse.redirect(`${origin}/dashboard`)
+    }
+
+    console.log('[Auth Callback] No existing session, verifying token with type:', type)
 
     const { data, error } = await supabase.auth.verifyOtp({
       type: type as any,
@@ -46,6 +60,16 @@ export async function GET(request: NextRequest) {
 
     if (error) {
       console.error('[Auth Callback] Error verifying token:', error)
+
+      // ✅ FIX: If token expired but user might be authenticated, check again
+      if (error.message?.includes('expired') || error.code === 'otp_expired') {
+        const { data: { session: retrySession } } = await supabase.auth.getSession()
+        if (retrySession) {
+          console.log('[Auth Callback] Token expired but session exists, proceeding')
+          return NextResponse.redirect(`${origin}/setup-password`)
+        }
+      }
+
       return NextResponse.redirect(`${origin}/auth?error=verification_failed&message=${encodeURIComponent(error.message)}`)
     }
 
