@@ -26,7 +26,37 @@ export default function SetupPasswordPage() {
   })
 
   useEffect(() => {
-    checkUser()
+    // Check if there's a session in the URL hash
+    const hash = window.location.hash
+    if (hash && hash.includes('session=')) {
+      console.log('[Setup Password] Found session in URL hash, setting session...')
+      try {
+        const sessionParam = hash.split('session=')[1]
+        const sessionData = JSON.parse(decodeURIComponent(sessionParam))
+
+        // Set the session client-side
+        supabase.auth.setSession({
+          access_token: sessionData.access_token,
+          refresh_token: sessionData.refresh_token
+        }).then(({ error }) => {
+          if (error) {
+            console.error('[Setup Password] Error setting session from URL:', error)
+          } else {
+            console.log('[Setup Password] ✅ Session set from URL hash for:', sessionData.user.email)
+            // Clean up the URL hash
+            window.history.replaceState(null, '', window.location.pathname)
+          }
+          // Check user after setting session
+          checkUser()
+        })
+      } catch (error) {
+        console.error('[Setup Password] Error parsing session from URL:', error)
+        checkUser()
+      }
+    } else {
+      console.log('[Setup Password] No session in URL, checking existing session')
+      checkUser()
+    }
   }, [])
 
   useEffect(() => {
