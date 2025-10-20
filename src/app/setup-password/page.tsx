@@ -131,7 +131,10 @@ export default function SetupPasswordPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
+    console.log('[Setup Password] Form submitted')
+
     if (password !== confirmPassword) {
+      console.log('[Setup Password] Passwords do not match')
       toast.error('Passwords do not match')
       return
     }
@@ -139,11 +142,13 @@ export default function SetupPasswordPage() {
     if (!passwordStrength.hasMinLength || !passwordStrength.hasUppercase ||
         !passwordStrength.hasLowercase || !passwordStrength.hasNumber ||
         !passwordStrength.hasSpecialChar) {
+      console.log('[Setup Password] Password requirements not met')
       toast.error('Please meet all password requirements')
       return
     }
 
     setSubmitting(true)
+    console.log('[Setup Password] Updating user password...')
 
     try {
       const { error } = await supabase.auth.updateUser({
@@ -154,19 +159,23 @@ export default function SetupPasswordPage() {
       })
 
       if (error) {
+        console.error('[Setup Password] Error updating password:', error)
         toast.error(error.message)
         setSubmitting(false)
         return
       }
 
+      console.log('[Setup Password] ✅ Password updated successfully!')
       toast.success('Password created successfully!')
 
       // Redirect to welcome page
+      console.log('[Setup Password] Redirecting to /welcome...')
       setTimeout(() => {
         router.push('/welcome')
       }, 500)
 
     } catch (error: any) {
+      console.error('[Setup Password] Exception updating password:', error)
       toast.error(error.message || 'Failed to create password')
       setSubmitting(false)
     }
