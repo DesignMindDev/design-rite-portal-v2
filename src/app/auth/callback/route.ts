@@ -49,14 +49,42 @@ export async function GET(request: NextRequest) {
     const { data: { session } } = await supabase.auth.getSession()
 
     if (session) {
-      console.log('[Auth Callback] User already authenticated, skipping token verification')
-      console.log('[Auth Callback] Existing session for user:', session.user.email)
+      console.log('[Auth Callback] Found existing session for:', session.user.email)
 
-      // Redirect based on type
-      if (type === 'invite' || type === 'magiclink') {
-        return NextResponse.redirect(`${origin}/setup-password`)
+      // IMPORTANT: Verify the token to get the correct user for THIS invite
+      // Even if there's a session, we need to verify the token matches
+      // Otherwise user A's session could interfere with user B's invite
+      console.log('[Auth Callback] Verifying token to ensure correct user session')
+
+      const { data: tokenData, error: tokenError } = await supabase.auth.verifyOtp({
+        type: type as any,
+        token_hash,
+      })
+
+      if (!tokenError && tokenData.user) {
+        console.log('[Auth Callback] Token verified for:', tokenData.user.email)
+
+        // If token user doesn't match session user, sign out old session first
+        if (tokenData.user.email !== session.user.email) {
+          console.log('[Auth Callback] Token user differs from session user - clearing old session')
+          await supabase.auth.signOut()
+        }
+
+        // Redirect to password setup with correct session
+        if (type === 'invite' || type === 'magiclink') {
+          return NextResponse.redirect(`${origin}/setup-password`)
+        }
+        return NextResponse.redirect(`${origin}/dashboard`)
       }
-      return NextResponse.redirect(`${origin}/dashboard`)
+
+      // Token expired or invalid, but session exists - redirect anyway
+      if (tokenError?.code === 'otp_expired' && session.user.email) {
+        console.log('[Auth Callback] Token expired but session exists, proceeding')
+        if (type === 'invite' || type === 'magiclink') {
+          return NextResponse.redirect(`${origin}/setup-password`)
+        }
+        return NextResponse.redirect(`${origin}/dashboard`)
+      }
     }
 
     console.log('[Auth Callback] No existing session, verifying token with type:', type)
