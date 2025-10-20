@@ -42,26 +42,30 @@ export default function SetupPasswordPage() {
 
   const checkUser = async () => {
     try {
-      const { data: { user } } = await supabase.auth.getUser()
+      console.log('[Setup Password] Checking for user session...')
+      const { data: { user }, error } = await supabase.auth.getUser()
 
-      if (!user) {
-        // TEMPORARY: For demo purposes, show page even without auth
-        // In production, this would redirect to login
-        setUser({ email: 'demo@design-rite.com', created_at: new Date().toISOString() })
-        setLoading(false)
+      if (error) {
+        console.error('[Setup Password] Error getting user:', error)
+        toast.error('Auth session missing! Please use the invite link from your email.')
+        setTimeout(() => router.push('/auth'), 2000)
         return
-        // router.push('/auth')
-        // return
       }
 
+      if (!user) {
+        console.error('[Setup Password] No user found in session')
+        toast.error('Auth session missing! Please use the invite link from your email.')
+        setTimeout(() => router.push('/auth'), 2000)
+        return
+      }
+
+      console.log('[Setup Password] User session found:', user.email)
       setUser(user)
       setLoading(false)
     } catch (error) {
-      console.error('Error checking user:', error)
-      // TEMPORARY: Show demo page
-      setUser({ email: 'demo@design-rite.com', created_at: new Date().toISOString() })
-      setLoading(false)
-      // router.push('/auth')
+      console.error('[Setup Password] Exception checking user:', error)
+      toast.error('Auth session missing! Please use the invite link from your email.')
+      setTimeout(() => router.push('/auth'), 2000)
     }
   }
 

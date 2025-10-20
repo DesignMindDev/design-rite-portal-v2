@@ -13,8 +13,10 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
     persistSession: true,
     autoRefreshToken: true,
     detectSessionInUrl: true,
-    storage: typeof window !== 'undefined' ? window.localStorage : undefined,
-    storageKey: 'design-rite-portal-auth', // Different from main platform
+    // IMPORTANT: Don't specify storage - let Supabase use default cookie-based storage
+    // This allows client and server to share the same session via cookies
+    // storage: typeof window !== 'undefined' ? window.localStorage : undefined,
+    // storageKey: 'design-rite-portal-auth',
     flowType: 'pkce'
   },
   global: {
