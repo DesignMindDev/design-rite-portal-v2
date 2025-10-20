@@ -3,19 +3,40 @@
 import { useState } from 'react';
 import { toast } from 'sonner';
 
+type StandardPlan = {
+  name: string;
+  regularPrice: number;
+  price: number;
+  priceId: string;
+  savings: string;
+  billingPeriod: 'month' | 'year';
+  isCustom: false;
+  features: string[];
+};
+
+type EnterprisePlan = {
+  name: string;
+  price: string;
+  contactEmail: string;
+  isCustom: true;
+  features: string[];
+};
+
+type PlanType = StandardPlan | EnterprisePlan;
+
 export default function StartTrialPage() {
   const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(false);
   const [plan, setPlan] = useState<'starter' | 'starterAnnual' | 'pro' | 'proAnnual' | 'enterprise'>('starter');
 
-  const plans = {
+  const plans: Record<string, PlanType> = {
     starter: {
       name: 'Starter',
       regularPrice: 98,
       price: 49,
       priceId: process.env.NEXT_PUBLIC_STRIPE_PRICE_STARTER!,
       savings: 'Save $49/mo',
-      billingPeriod: 'month' as const,
+      billingPeriod: 'month',
       isCustom: false,
       features: [
         'AI-powered proposals',
@@ -30,7 +51,7 @@ export default function StartTrialPage() {
       price: 470.40,
       priceId: process.env.NEXT_PUBLIC_STRIPE_PRICE_STARTER_ANNUAL!,
       savings: 'Save $705.60/year',
-      billingPeriod: 'year' as const,
+      billingPeriod: 'year',
       isCustom: false,
       features: [
         'Everything in Starter Monthly',
@@ -44,7 +65,7 @@ export default function StartTrialPage() {
       price: 199,
       priceId: process.env.NEXT_PUBLIC_STRIPE_PRICE_PROFESSIONAL!,
       savings: 'Save $199/mo',
-      billingPeriod: 'month' as const,
+      billingPeriod: 'month',
       isCustom: false,
       features: [
         'Everything in Starter',
@@ -60,7 +81,7 @@ export default function StartTrialPage() {
       price: 1915.20,
       priceId: process.env.NEXT_PUBLIC_STRIPE_PRICE_PROFESSIONAL_ANNUAL!,
       savings: 'Save $2,872/year',
-      billingPeriod: 'year' as const,
+      billingPeriod: 'year',
       isCustom: false,
       features: [
         'Everything in Professional Monthly',
@@ -82,7 +103,7 @@ export default function StartTrialPage() {
         'Custom integrations'
       ]
     }
-  } as const;
+  };
 
   const handleStartTrial = async () => {
     setLoading(true);
@@ -193,29 +214,31 @@ export default function StartTrialPage() {
                         Custom Pricing
                       </div>
                       <a
-                        href={`mailto:${planData.contactEmail}`}
+                        href={`mailto:${planData.isCustom ? planData.contactEmail : ''}`}
                         className="inline-block bg-gradient-to-r from-purple-600 to-blue-600 text-white px-6 py-2 rounded-lg font-semibold hover:from-purple-700 hover:to-blue-700 transition-all text-sm"
                       >
                         Contact Sales
                       </a>
                       <p className="text-xs text-gray-600 mt-2">
-                        Email: {planData.contactEmail}
+                        Email: {planData.isCustom ? planData.contactEmail : ''}
                       </p>
                     </>
                   ) : (
                     <>
-                      {planData.regularPrice && (
+                      {!planData.isCustom && planData.regularPrice && (
                         <div className="text-gray-400 line-through text-lg mb-1">
                           ${planData.regularPrice}/{planData.billingPeriod === 'year' ? 'yr' : 'mo'}
                         </div>
                       )}
                       <div className="text-4xl font-bold text-blue-600 mb-1">
-                        ${typeof planData.price === 'number' ? planData.price.toFixed(2) : planData.price}
+                        ${!planData.isCustom ? planData.price.toFixed(2) : planData.price}
                       </div>
-                      <div className="text-gray-600 text-sm mb-2">
-                        per {planData.billingPeriod === 'year' ? 'year' : 'month'}
-                      </div>
-                      {planData.savings && (
+                      {!planData.isCustom && (
+                        <div className="text-gray-600 text-sm mb-2">
+                          per {planData.billingPeriod === 'year' ? 'year' : 'month'}
+                        </div>
+                      )}
+                      {!planData.isCustom && planData.savings && (
                         <div className="inline-block bg-green-100 text-green-700 px-3 py-1 rounded-full text-xs font-semibold">
                           {planData.savings}
                         </div>
