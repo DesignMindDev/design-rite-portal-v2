@@ -270,14 +270,6 @@ export default function WelcomePage() {
       color: 'from-green-500 to-green-600',
       action: () => router.push('/dashboard?tab=subscription'),
       badge: 'Save 20%'
-    },
-    {
-      title: 'Back to Test Page',
-      description: 'Return to the auth test page on the main platform',
-      icon: ExternalLink,
-      color: 'from-orange-500 to-orange-600',
-      action: handleTestPage,
-      badge: 'Testing'
     }
   ]
 
