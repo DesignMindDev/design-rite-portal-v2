@@ -15,7 +15,7 @@ interface AIProvider {
   enabled: boolean
   max_tokens: number
   timeout_seconds: number
-  use_case: 'general' | 'chatbot' | 'assessment' | 'search' | 'analysis' | 'creative-vision' | 'creative-writing' | 'creative-social'
+  use_case: 'general' | 'chatbot' | 'assessment' | 'search' | 'analysis' | 'creative-vision' | 'creative-writing' | 'creative-social' | 'general-chat'
   description?: string
   created_at: string
   updated_at: string
@@ -175,6 +175,7 @@ export default function AIProvidersAdmin() {
       case 'creative-vision': return <Eye className="w-4 h-4" />
       case 'creative-writing': return <FileText className="w-4 h-4" />
       case 'creative-social': return <Share2 className="w-4 h-4" />
+      case 'general-chat': return <MessageSquare className="w-4 h-4" />
       default: return <Bot className="w-4 h-4" />
     }
   }
@@ -188,6 +189,7 @@ export default function AIProvidersAdmin() {
       case 'creative-vision': return 'bg-pink-500/20 text-pink-400'
       case 'creative-writing': return 'bg-orange-500/20 text-orange-400'
       case 'creative-social': return 'bg-cyan-500/20 text-cyan-400'
+      case 'general-chat': return 'bg-indigo-500/20 text-indigo-400'
       default: return 'bg-gray-500/20 text-gray-400'
     }
   }
