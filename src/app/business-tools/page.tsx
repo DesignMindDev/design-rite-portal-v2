@@ -31,13 +31,13 @@ export default function BusinessToolsPage() {
       badge: 'Coming Soon'
     },
     {
-      title: 'Business Calculator',
-      description: 'Calculate profits, margins, and ROI',
-      subtitle: 'Financial calculators for profit margins, ROI analysis, break-even points, and project profitability.',
+      title: 'Labor Calculator',
+      description: 'Calculate labor costs with procurement vehicle rates',
+      subtitle: 'Calculate labor costs using your procurement vehicle rates, team composition, and device-specific hours. AI-accessible for proposal generation.',
       icon: Calculator,
-      href: '/business-tools/calculator',
+      href: '/business-tools/labor-calculator',
       color: 'from-purple-500 to-purple-600',
-      badge: 'Coming Soon'
+      badge: 'NEW'
     },
     {
       title: 'Performance Tracker',
