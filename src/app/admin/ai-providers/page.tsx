@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { Shield, Brain, CheckCircle, AlertCircle, Settings, Plus, Edit, Trash2, Play, Activity, Server, Zap, MessageSquare, Bot, Code, Search, Database, Palette, FileText, Share2, Eye } from 'lucide-react'
+import { supabase } from '@/lib/supabase'
 
 interface AIProvider {
   id: string
@@ -67,7 +68,21 @@ export default function AIProvidersAdmin() {
 
   const loadData = async () => {
     try {
-      const response = await fetch('/api/admin/ai-providers')
+      // Get session for authentication
+      const { data: { session } } = await supabase.auth.getSession()
+
+      if (!session) {
+        console.error('No session found')
+        setLoading(false)
+        return
+      }
+
+      const response = await fetch('/api/admin/ai-providers', {
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`
+        }
+      })
+
       if (response.ok) {
         const result = await response.json()
         setData(result)
@@ -81,6 +96,15 @@ export default function AIProvidersAdmin() {
 
   const saveProvider = async (provider: Partial<AIProvider>, isEdit = false) => {
     try {
+      // Get session for authentication
+      const { data: { session } } = await supabase.auth.getSession()
+
+      if (!session) {
+        console.error('No session found')
+        alert('Please sign in to add providers')
+        return
+      }
+
       // Set use_case based on active tab
       let finalProvider = { ...provider }
       if (activeTab === 'demo-estimator') {
@@ -94,7 +118,10 @@ export default function AIProvidersAdmin() {
 
       const response = await fetch('/api/admin/ai-providers', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`
+        },
         body: JSON.stringify({
           action: isEdit ? 'update' : 'create',
           provider: finalProvider
@@ -105,9 +132,14 @@ export default function AIProvidersAdmin() {
         loadData()
         setEditingProvider(null)
         setNewProvider({})
+      } else {
+        const error = await response.json()
+        console.error('Error saving provider:', error)
+        alert(`Failed to save provider: ${error.error || 'Unknown error'}`)
       }
     } catch (error) {
       console.error('Error saving provider:', error)
+      alert('Failed to save provider. Please try again.')
     }
   }
 
@@ -115,9 +147,21 @@ export default function AIProvidersAdmin() {
     if (!confirm('Are you sure you want to delete this AI provider?')) return
 
     try {
+      // Get session for authentication
+      const { data: { session } } = await supabase.auth.getSession()
+
+      if (!session) {
+        console.error('No session found')
+        alert('Please sign in to delete providers')
+        return
+      }
+
       const response = await fetch('/api/admin/ai-providers', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`
+        },
         body: JSON.stringify({
           action: 'delete',
           provider: { id }
@@ -126,18 +170,36 @@ export default function AIProvidersAdmin() {
 
       if (response.ok) {
         loadData()
+      } else {
+        const error = await response.json()
+        console.error('Error deleting provider:', error)
+        alert(`Failed to delete provider: ${error.error || 'Unknown error'}`)
       }
     } catch (error) {
       console.error('Error deleting provider:', error)
+      alert('Failed to delete provider. Please try again.')
     }
   }
 
   const testConnection = async (provider: AIProvider) => {
     setTesting(provider.id)
     try {
+      // Get session for authentication
+      const { data: { session } } = await supabase.auth.getSession()
+
+      if (!session) {
+        console.error('No session found')
+        alert('Please sign in to test connections')
+        setTesting(null)
+        return
+      }
+
       const response = await fetch('/api/admin/ai-providers', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`
+        },
         body: JSON.stringify({
           action: 'test_connection',
           provider
@@ -148,6 +210,10 @@ export default function AIProvidersAdmin() {
         const result = await response.json()
         alert(result.message)
         loadData()
+      } else {
+        const error = await response.json()
+        console.error('Error testing connection:', error)
+        alert(`Connection test failed: ${error.error || 'Unknown error'}`)
       }
     } catch (error) {
       console.error('Error testing connection:', error)
