@@ -61,6 +61,12 @@ interface QuickTopic {
   action: string
 }
 
+interface ChatMessage {
+  role: 'user' | 'assistant'
+  content: string
+  timestamp: Date
+}
+
 export default function DocumentTemplatesPage() {
   const [selectedTemplate, setSelectedTemplate] = useState<Template | null>(null)
   const [documents, setDocuments] = useState<Document[]>([])
@@ -68,6 +74,8 @@ export default function DocumentTemplatesPage() {
   const [aiPrompt, setAiPrompt] = useState('')
   const [isGenerating, setIsGenerating] = useState(false)
   const [showAiAssistant, setShowAiAssistant] = useState(false)
+  const [chatMessages, setChatMessages] = useState<ChatMessage[]>([])
+  const [chatInput, setChatInput] = useState('')
 
   const templates: Template[] = [
     {
@@ -252,20 +260,70 @@ export default function DocumentTemplatesPage() {
       template.fields.map(field => `## ${field}\n\n[Enter ${field.toLowerCase()} here]\n\n`).join('')
   }
 
-  const handleAiEnhance = async () => {
-    if (!currentDocument || !aiPrompt.trim()) {
-      toast.error('Please enter an AI instruction')
+  const handleSendChat = async () => {
+    if (!currentDocument || !chatInput.trim()) {
+      toast.error('Please enter a message')
       return
     }
 
+    const userMessage: ChatMessage = {
+      role: 'user',
+      content: chatInput.trim(),
+      timestamp: new Date()
+    }
+
+    // Add user message to chat
+    setChatMessages(prev => [...prev, userMessage])
+    setChatInput('')
     setIsGenerating(true)
 
     try {
-      // Simulate AI enhancement
-      await new Promise(resolve => setTimeout(resolve, 2000))
+      const response = await fetch('/api/document-chat', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          message: userMessage.content,
+          documentContext: {
+            title: currentDocument.title,
+            content: currentDocument.content,
+            templateName: currentDocument.templateName
+          },
+          conversationHistory: chatMessages
+        })
+      })
 
-      // Mock AI enhancement
-      const enhancedContent = currentDocument.content + `\n\n[AI Enhanced Section based on: "${aiPrompt}"]\n\nThis section has been enhanced with professional language, compliance terminology, and industry best practices to meet ${currentDocument.templateName} requirements.\n`
+      if (!response.ok) {
+        throw new Error('Failed to get AI response')
+      }
+
+      const data = await response.json()
+
+      const assistantMessage: ChatMessage = {
+        role: 'assistant',
+        content: data.response,
+        timestamp: new Date()
+      }
+
+      setChatMessages(prev => [...prev, assistantMessage])
+      toast.success('AI responded!')
+    } catch (error) {
+      toast.error('AI chat failed. Please try again.')
+      console.error('Chat error:', error)
+    } finally {
+      setIsGenerating(false)
+    }
+  }
+
+  const handleApplyAISuggestion = () => {
+    if (!currentDocument || chatMessages.length === 0) return
+
+    // Get the last assistant message
+    const lastAssistantMessage = [...chatMessages].reverse().find(msg => msg.role === 'assistant')
+
+    if (lastAssistantMessage) {
+      const enhancedContent = currentDocument.content + `\n\n${lastAssistantMessage.content}\n`
 
       setCurrentDocument({
         ...currentDocument,
@@ -278,12 +336,7 @@ export default function DocumentTemplatesPage() {
       )
       setDocuments(updatedDocs)
 
-      setAiPrompt('')
-      toast.success('Document enhanced with AI!')
-    } catch (error) {
-      toast.error('AI enhancement failed')
-    } finally {
-      setIsGenerating(false)
+      toast.success('AI suggestion applied to document!')
     }
   }
 
@@ -328,7 +381,7 @@ export default function DocumentTemplatesPage() {
       toast.error('Please create or select a document first')
       return
     }
-    setAiPrompt(topic.action)
+    setChatInput(topic.title)
     setShowAiAssistant(true)
     toast.success(`Educational topic loaded: "${topic.title}"`)
   }
@@ -637,74 +690,135 @@ export default function DocumentTemplatesPage() {
                       </div>
                     </div>
 
-                    {/* AI Assistant Panel */}
+                    {/* AI Chat Assistant */}
                     {showAiAssistant && (
-                      <div className="bg-gradient-to-br from-purple-50 to-indigo-50 rounded-xl border-2 border-purple-200 shadow-lg p-6">
-                        <div className="flex items-center gap-3 mb-4">
-                          <div className="w-10 h-10 bg-purple-600 rounded-lg flex items-center justify-center">
-                            <Sparkles className="w-5 h-5 text-white" />
-                          </div>
-                          <div>
-                            <h3 className="text-lg font-bold text-gray-900">AI Document Assistant</h3>
-                            <p className="text-sm text-gray-600">Ask AI to enhance, rewrite, or add content</p>
+                      <div className="bg-gradient-to-br from-purple-50 to-indigo-50 rounded-xl border-2 border-purple-200 shadow-lg overflow-hidden">
+                        <div className="p-6 border-b border-purple-200">
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-3">
+                              <div className="w-10 h-10 bg-purple-600 rounded-lg flex items-center justify-center">
+                                <Sparkles className="w-5 h-5 text-white" />
+                              </div>
+                              <div>
+                                <h3 className="text-lg font-bold text-gray-900">AI Document Assistant</h3>
+                                <p className="text-sm text-gray-600">Chat with AI to improve your document</p>
+                              </div>
+                            </div>
+                            <button
+                              onClick={() => setChatMessages([])}
+                              className="text-sm text-purple-600 hover:text-purple-700 font-medium"
+                            >
+                              Clear Chat
+                            </button>
                           </div>
                         </div>
 
-                        <div className="space-y-3">
-                          <textarea
-                            value={aiPrompt}
-                            onChange={(e) => setAiPrompt(e.target.value)}
-                            placeholder="Example: 'Add ISO 27001 security controls section' or 'Make this more professional' or 'Add SOC 2 compliance details'"
-                            className="w-full h-24 p-4 border border-purple-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 resize-none"
-                          />
-                          <button
-                            onClick={handleAiEnhance}
-                            disabled={isGenerating || !aiPrompt.trim()}
-                            className="w-full bg-purple-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-purple-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-                          >
-                            {isGenerating ? (
-                              <>
-                                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                                Enhancing...
-                              </>
-                            ) : (
-                              <>
-                                <Sparkles className="w-5 h-5" />
-                                Enhance with AI
-                              </>
-                            )}
-                          </button>
+                        {/* Chat Messages */}
+                        <div className="h-96 overflow-y-auto p-6 space-y-4 bg-white">
+                          {chatMessages.length === 0 && (
+                            <div className="text-center text-gray-500 py-8">
+                              <p className="mb-4">Start a conversation about your document!</p>
+                              <div className="grid grid-cols-2 gap-2 max-w-md mx-auto">
+                                <button
+                                  onClick={() => setChatInput('Help me improve this document')}
+                                  className="px-3 py-2 bg-purple-100 text-purple-700 rounded-lg text-sm hover:bg-purple-200 transition-colors"
+                                >
+                                  Improve Document
+                                </button>
+                                <button
+                                  onClick={() => setChatInput('Add ISO 27001 controls')}
+                                  className="px-3 py-2 bg-purple-100 text-purple-700 rounded-lg text-sm hover:bg-purple-200 transition-colors"
+                                >
+                                  Add ISO Controls
+                                </button>
+                                <button
+                                  onClick={() => setChatInput('Make it more professional')}
+                                  className="px-3 py-2 bg-purple-100 text-purple-700 rounded-lg text-sm hover:bg-purple-200 transition-colors"
+                                >
+                                  Professional Tone
+                                </button>
+                                <button
+                                  onClick={() => setChatInput('Add SOC 2 compliance details')}
+                                  className="px-3 py-2 bg-purple-100 text-purple-700 rounded-lg text-sm hover:bg-purple-200 transition-colors"
+                                >
+                                  SOC 2 Details
+                                </button>
+                              </div>
+                            </div>
+                          )}
+                          {chatMessages.map((msg, idx) => (
+                            <div
+                              key={idx}
+                              className={`flex gap-3 ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
+                            >
+                              {msg.role === 'assistant' && (
+                                <div className="w-8 h-8 bg-purple-600 rounded-full flex items-center justify-center flex-shrink-0">
+                                  <Sparkles className="w-4 h-4 text-white" />
+                                </div>
+                              )}
+                              <div
+                                className={`max-w-[80%] rounded-lg p-4 ${
+                                  msg.role === 'user'
+                                    ? 'bg-purple-600 text-white'
+                                    : 'bg-gray-100 text-gray-900'
+                                }`}
+                              >
+                                <p className="text-sm whitespace-pre-wrap">{msg.content}</p>
+                                <p className="text-xs mt-2 opacity-70">
+                                  {new Date(msg.timestamp).toLocaleTimeString()}
+                                </p>
+                              </div>
+                              {msg.role === 'user' && (
+                                <div className="w-8 h-8 bg-indigo-600 rounded-full flex items-center justify-center flex-shrink-0">
+                                  <span className="text-white text-xs font-bold">You</span>
+                                </div>
+                              )}
+                            </div>
+                          ))}
+                          {isGenerating && (
+                            <div className="flex gap-3">
+                              <div className="w-8 h-8 bg-purple-600 rounded-full flex items-center justify-center flex-shrink-0">
+                                <Sparkles className="w-4 h-4 text-white" />
+                              </div>
+                              <div className="bg-gray-100 rounded-lg p-4">
+                                <div className="flex items-center gap-2">
+                                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-purple-600"></div>
+                                  <span className="text-sm text-gray-600">AI is thinking...</span>
+                                </div>
+                              </div>
+                            </div>
+                          )}
                         </div>
 
-                        {/* Quick Actions */}
-                        <div className="mt-4 pt-4 border-t border-purple-200">
-                          <p className="text-sm font-medium text-gray-700 mb-2">Quick Actions:</p>
-                          <div className="grid grid-cols-2 gap-2">
+                        {/* Chat Input */}
+                        <div className="p-4 border-t border-purple-200 bg-white">
+                          <div className="flex gap-2">
+                            <input
+                              type="text"
+                              value={chatInput}
+                              onChange={(e) => setChatInput(e.target.value)}
+                              onKeyPress={(e) => e.key === 'Enter' && !e.shiftKey && handleSendChat()}
+                              placeholder="Ask AI about your document..."
+                              className="flex-1 px-4 py-3 border border-purple-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                              disabled={isGenerating}
+                            />
                             <button
-                              onClick={() => setAiPrompt('Add ISO 27001 security controls section with compliance details')}
-                              className="px-3 py-2 bg-white border border-purple-300 rounded-lg text-sm hover:bg-purple-50 transition-colors"
+                              onClick={handleSendChat}
+                              disabled={isGenerating || !chatInput.trim()}
+                              className="bg-purple-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-purple-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
                             >
-                              Add ISO Controls
-                            </button>
-                            <button
-                              onClick={() => setAiPrompt('Add SOC 2 Type II compliance requirements and evidence')}
-                              className="px-3 py-2 bg-white border border-purple-300 rounded-lg text-sm hover:bg-purple-50 transition-colors"
-                            >
-                              Add SOC 2 Details
-                            </button>
-                            <button
-                              onClick={() => setAiPrompt('Make the language more professional and formal')}
-                              className="px-3 py-2 bg-white border border-purple-300 rounded-lg text-sm hover:bg-purple-50 transition-colors"
-                            >
-                              Professional Tone
-                            </button>
-                            <button
-                              onClick={() => setAiPrompt('Add technical specifications and compliance evidence')}
-                              className="px-3 py-2 bg-white border border-purple-300 rounded-lg text-sm hover:bg-purple-50 transition-colors"
-                            >
-                              Add Tech Specs
+                              <Send className="w-5 h-5" />
+                              Send
                             </button>
                           </div>
+                          {chatMessages.length > 0 && (
+                            <button
+                              onClick={handleApplyAISuggestion}
+                              className="mt-2 w-full bg-indigo-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-indigo-700 transition-colors"
+                            >
+                              Apply Last AI Suggestion to Document
+                            </button>
+                          )}
                         </div>
                       </div>
                     )}
