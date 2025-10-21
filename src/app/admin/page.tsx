@@ -160,6 +160,14 @@ export default function AdminDashboardPage() {
       href: '/admin/blog',
       color: 'from-violet-500 to-violet-600',
       status: 'active'
+    },
+    {
+      title: 'Document Templates',
+      description: 'Create compliance documents with AI-powered assistance',
+      icon: FileText,
+      href: '/admin/document-templates',
+      color: 'from-purple-500 to-purple-600',
+      status: 'active'
     }
   ]
 
@@ -183,7 +191,7 @@ export default function AdminDashboardPage() {
               <div>
                 <p className="text-sm text-green-900 font-medium">Marketing & Content Migration Complete!</p>
                 <p className="text-sm text-green-700 mt-1">
-                  11 of 12 admin sections fully active. Only Spatial Studio remaining!
+                  12 of 13 admin sections fully active. Only Spatial Studio remaining!
                 </p>
               </div>
             </div>
