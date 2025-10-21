@@ -117,7 +117,9 @@ export async function GET(request: NextRequest) {
     }
 
     // Pagination
-    query = query.range(params.offset, params.offset + params.limit - 1)
+    const offset = params.offset ?? 0
+    const limit = params.limit ?? 50
+    query = query.range(offset, offset + limit - 1)
 
     // Execute query
     const { data: products, error, count } = await query
