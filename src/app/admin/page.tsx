@@ -146,6 +146,14 @@ export default function AdminDashboardPage() {
       status: 'active'
     },
     {
+      title: 'Career Postings',
+      description: 'Manage job listings displayed on design-rite.com/careers',
+      icon: Briefcase,
+      href: '/admin/careers',
+      color: 'from-orange-500 to-orange-600',
+      status: 'active'
+    },
+    {
       title: 'Site Logos',
       description: 'Manage header and footer logos',
       icon: Palette,
@@ -191,7 +199,7 @@ export default function AdminDashboardPage() {
               <div>
                 <p className="text-sm text-green-900 font-medium">Marketing & Content Migration Complete!</p>
                 <p className="text-sm text-green-700 mt-1">
-                  12 of 13 admin sections fully active. Only Spatial Studio remaining!
+                  13 of 14 admin sections fully active. Only Spatial Studio remaining!
                 </p>
               </div>
             </div>
