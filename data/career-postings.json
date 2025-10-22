@@ -1,0 +1,118 @@
+[
+  {
+    "id": "ai-security-engineer",
+    "title": "AI Security Engineer",
+    "department": "Engineering",
+    "location": "Remote",
+    "type": "Full-time",
+    "description": "Build and deploy advanced AI-powered security systems. Work with cutting-edge machine learning models.",
+    "responsibilities": [
+      "Design and implement AI-powered security solutions",
+      "Develop machine learning models for threat detection",
+      "Collaborate with cross-functional teams",
+      "Optimize AI algorithms for performance"
+    ],
+    "requirements": [
+      "5+ years experience in AI/ML development",
+      "Strong Python and TensorFlow/PyTorch skills",
+      "Experience with security systems",
+      "Bachelor's degree in Computer Science or related field"
+    ],
+    "niceToHave": [
+      "Experience with computer vision",
+      "Knowledge of low-voltage security systems",
+      "Previous startup experience"
+    ],
+    "salary_range": "$120,000 - $180,000",
+    "is_active": true,
+    "created_at": "2025-01-22T00:00:00Z",
+    "updated_at": "2025-01-22T00:00:00Z"
+  },
+  {
+    "id": "cybersecurity-analyst",
+    "title": "Cybersecurity Analyst",
+    "department": "Security",
+    "location": "Hybrid",
+    "type": "Full-time",
+    "description": "Analyze threats, investigate incidents, and develop security protocols for enterprise clients.",
+    "responsibilities": [
+      "Monitor security systems for threats",
+      "Investigate security incidents",
+      "Develop security protocols and procedures",
+      "Conduct security assessments"
+    ],
+    "requirements": [
+      "3+ years experience in cybersecurity",
+      "Security certifications (CISSP, CEH, etc.)",
+      "Strong analytical skills",
+      "Experience with SIEM tools"
+    ],
+    "niceToHave": [
+      "Experience with physical security systems",
+      "Incident response experience",
+      "Knowledge of compliance frameworks (HIPAA, FERPA)"
+    ],
+    "salary_range": "$90,000 - $130,000",
+    "is_active": true,
+    "created_at": "2025-01-22T00:00:00Z",
+    "updated_at": "2025-01-22T00:00:00Z"
+  },
+  {
+    "id": "technical-sales-engineer",
+    "title": "Technical Sales Engineer",
+    "department": "Sales",
+    "location": "Remote",
+    "type": "Full-time",
+    "description": "Bridge the gap between our technical solutions and enterprise client needs. Combine technical expertise with sales acumen.",
+    "responsibilities": [
+      "Present technical solutions to enterprise clients",
+      "Conduct product demonstrations",
+      "Support sales team with technical expertise",
+      "Develop proof-of-concept implementations"
+    ],
+    "requirements": [
+      "5+ years experience in technical sales or sales engineering",
+      "Strong understanding of security systems",
+      "Excellent presentation and communication skills",
+      "Experience with enterprise sales cycles"
+    ],
+    "niceToHave": [
+      "Low-voltage security background",
+      "Experience with SaaS products",
+      "Technical certifications"
+    ],
+    "salary_range": "$100,000 - $150,000 + commission",
+    "is_active": true,
+    "created_at": "2025-01-22T00:00:00Z",
+    "updated_at": "2025-01-22T00:00:00Z"
+  },
+  {
+    "id": "product-manager-security",
+    "title": "Product Manager - Security Solutions",
+    "department": "Product",
+    "location": "Hybrid",
+    "type": "Full-time",
+    "description": "Define product strategy and roadmap for our AI security platform. Work directly with engineering and design teams.",
+    "responsibilities": [
+      "Define product vision and strategy",
+      "Prioritize features and manage roadmap",
+      "Work with engineering and design teams",
+      "Conduct market research and competitive analysis"
+    ],
+    "requirements": [
+      "5+ years experience in product management",
+      "Strong technical background",
+      "Experience with B2B SaaS products",
+      "Excellent leadership and communication skills"
+    ],
+    "niceToHave": [
+      "Security domain knowledge",
+      "Experience with AI/ML products",
+      "MBA or technical degree"
+    ],
+    "salary_range": "$130,000 - $170,000",
+    "is_active": true,
+    "created_at": "2025-01-22T00:00:00Z",
+    "updated_at": "2025-01-22T00:00:00Z"
+  }
+]
