@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
-import { Shield, Brain, CheckCircle, AlertCircle, Settings, Plus, Edit, Trash2, Play, Activity, Server, Zap, MessageSquare, Bot, Code, Search, Database, Palette, FileText, Share2, Eye } from 'lucide-react'
+import { Shield, Brain, CheckCircle, AlertCircle, Settings, Plus, Edit, Trash2, Play, Activity, Server, Zap, MessageSquare, Bot, Code, Search, Database, Palette, FileText, Share2, Eye, RefreshCw } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 
 interface AIProvider {
@@ -56,6 +56,7 @@ interface AIProvidersData {
 export default function AIProvidersAdmin() {
   const [data, setData] = useState<AIProvidersData>({ providers: [], health_checks: [], settings: { health_check_interval_minutes: 5, auto_failover_enabled: true, fallback_to_static_responses: true } })
   const [loading, setLoading] = useState(true)
+  const [refreshing, setRefreshing] = useState(false)
   const [editingProvider, setEditingProvider] = useState<AIProvider | null>(null)
   const [newProvider, setNewProvider] = useState<Partial<AIProvider>>({})
   const [testing, setTesting] = useState<string | null>(null)
@@ -91,6 +92,18 @@ export default function AIProvidersAdmin() {
       console.error('Error loading AI providers:', error)
     } finally {
       setLoading(false)
+    }
+  }
+
+  const handleRefresh = async () => {
+    setRefreshing(true)
+    try {
+      await loadData()
+      console.log('[AI Providers] Data refreshed successfully')
+    } catch (error) {
+      console.error('[AI Providers] Refresh error:', error)
+    } finally {
+      setRefreshing(false)
     }
   }
 
@@ -315,16 +328,25 @@ export default function AIProvidersAdmin() {
       <div className="container mx-auto px-4 py-8">
         {/* Header */}
         <div className="text-center mb-12">
-          <div className="flex items-center justify-center mb-4">
+          <div className="flex items-center justify-center mb-4 relative">
             <Link
               href="/admin"
-              className="absolute left-4 top-8 bg-gray-700 hover:bg-gray-600 text-white px-4 py-2 rounded-lg transition-colors flex items-center gap-2"
+              className="absolute left-4 top-0 bg-gray-700 hover:bg-gray-600 text-white px-4 py-2 rounded-lg transition-colors flex items-center gap-2"
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
               </svg>
               Back to Admin
             </Link>
+            <button
+              onClick={handleRefresh}
+              disabled={refreshing}
+              className="absolute right-4 top-0 bg-teal-600 hover:bg-teal-700 disabled:bg-teal-800 disabled:opacity-50 text-white px-4 py-2 rounded-lg transition-colors flex items-center gap-2"
+              title="Refresh AI providers data and check status"
+            >
+              <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
+              {refreshing ? 'Refreshing...' : 'Refresh'}
+            </button>
             <Brain className="w-16 h-16 text-purple-400" />
           </div>
           <h1 className="text-4xl font-bold text-white mb-4">AI Provider Management</h1>
