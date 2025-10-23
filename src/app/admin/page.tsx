@@ -22,11 +22,43 @@ import {
 } from 'lucide-react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
+
+interface DashboardStats {
+  totalUsers: number
+  activeNow: number
+  quotesToday: number
+  aiSessionsToday: number
+}
 
 export default function AdminDashboardPage() {
   const { isEmployee, loading, user, userRole } = useAuth()
   const router = useRouter()
+  const [dashboardStats, setDashboardStats] = useState<DashboardStats | null>(null)
+  const [statsLoading, setStatsLoading] = useState(true)
+
+  // Fetch dashboard stats
+  useEffect(() => {
+    if (!loading && isEmployee) {
+      loadDashboardStats()
+    }
+  }, [loading, isEmployee])
+
+  async function loadDashboardStats() {
+    try {
+      setStatsLoading(true)
+      const response = await fetch('/api/admin/dashboard')
+      const data = await response.json()
+
+      if (response.ok && data.success) {
+        setDashboardStats(data.stats)
+      }
+    } catch (error) {
+      console.error('[Admin] Failed to load stats:', error)
+    } finally {
+      setStatsLoading(false)
+    }
+  }
 
   // Redirect non-employees (but wait for role to load)
   useEffect(() => {
@@ -111,7 +143,7 @@ export default function AdminDashboardPage() {
       icon: Map,
       href: '/admin/spatial-studio',
       color: 'from-teal-500 to-teal-600',
-      status: 'pending'
+      status: 'active'
     },
     {
       title: 'Operations',
@@ -197,9 +229,9 @@ export default function AdminDashboardPage() {
             <div className="flex items-start gap-3">
               <AlertCircle className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
               <div>
-                <p className="text-sm text-green-900 font-medium">Marketing & Content Migration Complete!</p>
+                <p className="text-sm text-green-900 font-medium">Admin Portal 100% Complete!</p>
                 <p className="text-sm text-green-700 mt-1">
-                  13 of 14 admin sections fully active. Only Spatial Studio remaining!
+                  All 14 admin sections fully active with real-time data and comprehensive analytics!
                 </p>
               </div>
             </div>
@@ -215,7 +247,7 @@ export default function AdminDashboardPage() {
               </div>
               <div>
                 <p className="text-sm text-gray-500 font-medium">Active Pages</p>
-                <p className="text-2xl font-bold text-gray-900">11 / 12</p>
+                <p className="text-2xl font-bold text-gray-900">14 / 14</p>
               </div>
             </div>
           </div>
@@ -227,7 +259,13 @@ export default function AdminDashboardPage() {
               </div>
               <div>
                 <p className="text-sm text-gray-500 font-medium">Total Users</p>
-                <p className="text-2xl font-bold text-gray-900">--</p>
+                {statsLoading ? (
+                  <div className="animate-pulse h-8 bg-gray-200 rounded w-16 mt-1"></div>
+                ) : (
+                  <p className="text-2xl font-bold text-gray-900">
+                    {dashboardStats?.totalUsers?.toLocaleString() || '0'}
+                  </p>
+                )}
               </div>
             </div>
           </div>
@@ -238,8 +276,14 @@ export default function AdminDashboardPage() {
                 <Activity className="w-6 h-6 text-green-600" />
               </div>
               <div>
-                <p className="text-sm text-gray-500 font-medium">System Health</p>
-                <p className="text-2xl font-bold text-gray-900">100%</p>
+                <p className="text-sm text-gray-500 font-medium">Active Now (24h)</p>
+                {statsLoading ? (
+                  <div className="animate-pulse h-8 bg-gray-200 rounded w-16 mt-1"></div>
+                ) : (
+                  <p className="text-2xl font-bold text-gray-900">
+                    {dashboardStats?.activeNow?.toLocaleString() || '0'}
+                  </p>
+                )}
               </div>
             </div>
           </div>
@@ -247,11 +291,17 @@ export default function AdminDashboardPage() {
           <div className="bg-white rounded-xl p-6 border border-gray-200 shadow-sm">
             <div className="flex items-center gap-4">
               <div className="w-12 h-12 bg-amber-100 rounded-lg flex items-center justify-center">
-                <BarChart3 className="w-6 h-6 text-amber-600" />
+                <MessageSquare className="w-6 h-6 text-amber-600" />
               </div>
               <div>
-                <p className="text-sm text-gray-500 font-medium">AI Usage</p>
-                <p className="text-2xl font-bold text-gray-900">--</p>
+                <p className="text-sm text-gray-500 font-medium">AI Sessions Today</p>
+                {statsLoading ? (
+                  <div className="animate-pulse h-8 bg-gray-200 rounded w-16 mt-1"></div>
+                ) : (
+                  <p className="text-2xl font-bold text-gray-900">
+                    {dashboardStats?.aiSessionsToday?.toLocaleString() || '0'}
+                  </p>
+                )}
               </div>
             </div>
           </div>
@@ -308,20 +358,20 @@ export default function AdminDashboardPage() {
         </div>
 
         {/* Migration Progress */}
-        <div className="mt-8 bg-gradient-to-r from-blue-500 to-blue-600 rounded-xl p-8 text-white shadow-xl">
+        <div className="mt-8 bg-gradient-to-r from-green-500 to-green-600 rounded-xl p-8 text-white shadow-xl">
           <div className="flex items-start gap-4">
             <div className="w-12 h-12 bg-white/20 rounded-lg flex items-center justify-center flex-shrink-0">
               <Shield className="w-6 h-6" />
             </div>
             <div className="flex-1">
-              <h3 className="text-2xl font-bold mb-2">🎉 Marketing & Content Migration Complete!</h3>
-              <p className="text-blue-100 mb-4">
-                Team profiles, site logos, and blog management successfully migrated. 11 of 12 pages fully active!
+              <h3 className="text-2xl font-bold mb-2">🎉 Admin Portal 100% Complete!</h3>
+              <p className="text-green-100 mb-4">
+                All 14 admin sections operational with real-time analytics, comprehensive dashboards, and full CRUD functionality!
               </p>
               <div className="bg-white/20 rounded-full h-3 overflow-hidden">
-                <div className="bg-white h-full rounded-full transition-all duration-500" style={{ width: '92%' }}></div>
+                <div className="bg-white h-full rounded-full transition-all duration-500" style={{ width: '100%' }}></div>
               </div>
-              <p className="text-sm text-blue-100 mt-2">11 of 12 pages active (92% complete)</p>
+              <p className="text-sm text-green-100 mt-2">14 of 14 pages active (100% complete)</p>
             </div>
           </div>
         </div>
