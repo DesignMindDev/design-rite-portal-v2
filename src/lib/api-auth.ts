@@ -101,8 +101,22 @@ export async function requireRole(allowedRoles: string[], request: NextRequest) 
     return authResult;
   }
 
-  const supabase = createServerClient(request);
-  const { data: roleData } = await supabase
+  // Create Supabase client WITH the user's auth token for RLS
+  const supabaseWithAuth = createClient(supabaseUrl, supabaseAnonKey, {
+    auth: {
+      persistSession: false,
+      autoRefreshToken: false,
+      detectSessionInUrl: false,
+    },
+    global: {
+      headers: {
+        'X-Client-Info': 'design-rite-portal-v2-api',
+        'Authorization': `Bearer ${authResult.session!.access_token}`,
+      },
+    },
+  });
+
+  const { data: roleData, error: roleError } = await supabaseWithAuth
     .from('user_roles')
     .select('role')
     .eq('user_id', authResult.user!.id)
@@ -110,7 +124,18 @@ export async function requireRole(allowedRoles: string[], request: NextRequest) 
 
   const userRole = roleData?.role || 'guest';
 
+  console.log('[Portal API Auth] Role check:', {
+    userId: authResult.user!.id,
+    userEmail: authResult.user!.email,
+    roleData,
+    roleError,
+    userRole,
+    allowedRoles,
+    isAllowed: allowedRoles.includes(userRole)
+  });
+
   if (!allowedRoles.includes(userRole)) {
+    console.log('[Portal API Auth] Access denied - User role:', userRole, 'Required:', allowedRoles);
     return {
       error: NextResponse.json(
         { error: 'Forbidden', message: 'Insufficient permissions' },

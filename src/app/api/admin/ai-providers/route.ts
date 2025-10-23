@@ -1,12 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
-// Force dynamic rendering (do not pre-render at build time)
-export const dynamic = 'force-dynamic';
-import fs from 'fs'
-import path from 'path'
 import { createClient } from '@supabase/supabase-js'
 import { requireEmployee } from '@/lib/api-auth'
 
-const AI_PROVIDERS_PATH = path.join(process.cwd(), 'data', 'ai-providers.json')
+// Force dynamic rendering
+export const dynamic = 'force-dynamic'
+
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
+const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY!
 
 interface AIProvider {
   id: string
@@ -23,6 +23,8 @@ interface AIProvider {
   description?: string
   created_at: string
   updated_at: string
+  user_id?: string
+  is_global: boolean
 }
 
 interface HealthCheck {
@@ -34,156 +36,153 @@ interface HealthCheck {
   checked_at: string
 }
 
-interface ChatbotConfig {
-  assistant_id?: string
-  thread_management: boolean
-  auto_initialize: boolean
-  fallback_enabled: boolean
-  max_conversation_length: number
-  response_timeout_ms: number
+interface AISettings {
+  health_check_interval_minutes: number
+  auto_failover_enabled: boolean
+  fallback_to_static_responses: boolean
+  chatbot_assistant_id?: string
+  chatbot_thread_management: boolean
+  chatbot_auto_initialize: boolean
+  chatbot_fallback_enabled: boolean
+  chatbot_max_conversation_length: number
+  chatbot_response_timeout_ms: number
 }
 
 interface AIProvidersData {
   providers: AIProvider[]
   health_checks: HealthCheck[]
-  settings: {
-    health_check_interval_minutes: number
-    auto_failover_enabled: boolean
-    fallback_to_static_responses: boolean
-  }
-  chatbot_config?: ChatbotConfig
-}
-
-function loadProvidersData(): AIProvidersData {
-  if (!fs.existsSync(AI_PROVIDERS_PATH)) {
-    const defaultData: AIProvidersData = {
-      providers: [],
-      health_checks: [],
-      settings: {
-        health_check_interval_minutes: 5,
-        auto_failover_enabled: true,
-        fallback_to_static_responses: true
-      },
-      chatbot_config: {
-        assistant_id: 'asst_bqlPjRKyztWpplupYhCimIzS',
-        thread_management: true,
-        auto_initialize: true,
-        fallback_enabled: true,
-        max_conversation_length: 50,
-        response_timeout_ms: 30000
-      }
-    }
-    fs.writeFileSync(AI_PROVIDERS_PATH, JSON.stringify(defaultData, null, 2))
-    return defaultData
-  }
-
-  const data = fs.readFileSync(AI_PROVIDERS_PATH, 'utf8')
-  return JSON.parse(data)
-}
-
-function saveProvidersData(data: AIProvidersData): void {
-  fs.writeFileSync(AI_PROVIDERS_PATH, JSON.stringify(data, null, 2))
-}
-
-// Update .env file with new environment variables
-function updateEnvFile(envUpdates: Record<string, string>) {
-  const envPath = path.join(process.cwd(), '.env.local')
-  let envContent = ''
-
-  if (fs.existsSync(envPath)) {
-    envContent = fs.readFileSync(envPath, 'utf8')
-  }
-
-  for (const [key, value] of Object.entries(envUpdates)) {
-    const envVar = `${key}=${value}`
-    const regex = new RegExp(`^${key}=.*$`, 'm')
-
-    if (regex.test(envContent)) {
-      envContent = envContent.replace(regex, envVar)
-    } else {
-      envContent += `\n${envVar}`
-    }
-  }
-
-  fs.writeFileSync(envPath, envContent.trim() + '\n')
-}
-
-// Verify Supabase connection
-async function verifySupabaseConnection() {
-  try {
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-    const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-
-    if (!supabaseUrl || !supabaseKey) {
-      return { success: false, error: 'Supabase credentials not configured' }
-    }
-
-    const supabase = createClient(supabaseUrl, supabaseKey)
-
-    // Test connection by querying a simple table
-    const { data, error } = await supabase
-      .from('chatbot_conversations')
-      .select('count(*)', { count: 'exact', head: true })
-
-    if (error) {
-      return { success: false, error: error.message }
-    }
-
-    return { success: true, message: 'Supabase connection successful' }
-  } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error'
-    return { success: false, error: errorMessage }
+  settings: AISettings
+  chatbot_config?: {
+    assistant_id?: string
+    thread_management: boolean
+    auto_initialize: boolean
+    fallback_enabled: boolean
+    max_conversation_length: number
+    response_timeout_ms: number
   }
 }
 
-// Log provider creation/update to Supabase
-async function logProviderChange(action: string, provider: AIProvider) {
-  try {
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-    const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-
-    if (supabaseUrl && supabaseKey) {
-      const supabase = createClient(supabaseUrl, supabaseKey)
-
-      await supabase
-        .from('ai_sessions')
-        .insert([{
-          session_id: `admin_${Date.now()}`,
-          user_hash: 'admin',
-          session_name: `Provider ${action}: ${provider.name}`,
-          ai_provider: provider.provider_type,
-          assessment_data: { action, providerId: provider.id, timestamp: new Date().toISOString() }
-        }])
-    }
-  } catch (error) {
-    console.error('Failed to log provider change:', error)
+// Helper: Get Supabase client
+function getSupabaseClient() {
+  if (!supabaseUrl || !supabaseKey) {
+    throw new Error('Supabase credentials not configured')
   }
+  return createClient(supabaseUrl, supabaseKey, {
+    auth: {
+      autoRefreshToken: false,
+      persistSession: false
+    }
+  })
+}
+
+// Helper: Resolve API key (env variable or literal)
+function resolveApiKey(apiKey: string | null): string {
+  if (!apiKey) return ''
+  if (apiKey.startsWith('env:')) {
+    const envVarName = apiKey.substring(4)
+    return process.env[envVarName] || apiKey
+  }
+  return apiKey
 }
 
 // GET - Retrieve AI providers configuration
 export async function GET(request: NextRequest) {
   // Require employee authentication
   const auth = await requireEmployee(request)
+
+  // Debug logging for authentication issues
+  console.log('[Portal API] GET /api/admin/ai-providers - Auth result:', {
+    hasError: !!auth.error,
+    hasUser: !!auth.user,
+    userId: auth.user?.id,
+    userEmail: auth.user?.email,
+    role: (auth as any).role
+  })
+
   if (auth.error) return auth.error
 
   try {
-    const data = loadProvidersData()
+    const supabase = getSupabaseClient()
 
-    // Don't expose API keys in the response
-    const sanitizedProviders = data.providers.map(provider => ({
+    // Fetch all providers
+    const { data: providers, error: providersError } = await supabase
+      .from('ai_providers')
+      .select('*')
+      .order('priority', { ascending: true })
+
+    if (providersError) {
+      console.error('[Portal API] Error fetching providers:', providersError)
+      return NextResponse.json({ error: 'Failed to load AI providers' }, { status: 500 })
+    }
+
+    // Fetch recent health checks (last 50)
+    const { data: healthChecks, error: healthError } = await supabase
+      .from('ai_provider_health_checks')
+      .select('*')
+      .order('checked_at', { ascending: false })
+      .limit(50)
+
+    if (healthError) {
+      console.error('[Portal API] Error fetching health checks:', healthError)
+    }
+
+    // Fetch settings
+    const { data: settings, error: settingsError } = await supabase
+      .from('ai_provider_settings')
+      .select('*')
+      .eq('id', 'global')
+      .single()
+
+    if (settingsError) {
+      console.error('[Portal API] Error fetching settings:', settingsError)
+    }
+
+    // Sanitize API keys for client response
+    const sanitizedProviders = (providers || []).map(provider => ({
       ...provider,
       api_key: provider.api_key ? '***configured***' : ''
     }))
 
-    return NextResponse.json({
+    // Build response
+    const response: AIProvidersData = {
       providers: sanitizedProviders,
-      health_checks: data.health_checks.slice(-50), // Last 50 health checks
-      settings: data.settings,
-      chatbot_config: data.chatbot_config
-    })
+      health_checks: healthChecks || [],
+      settings: settings ? {
+        health_check_interval_minutes: settings.health_check_interval_minutes,
+        auto_failover_enabled: settings.auto_failover_enabled,
+        fallback_to_static_responses: settings.fallback_to_static_responses,
+        chatbot_assistant_id: settings.chatbot_assistant_id,
+        chatbot_thread_management: settings.chatbot_thread_management,
+        chatbot_auto_initialize: settings.chatbot_auto_initialize,
+        chatbot_fallback_enabled: settings.chatbot_fallback_enabled,
+        chatbot_max_conversation_length: settings.chatbot_max_conversation_length,
+        chatbot_response_timeout_ms: settings.chatbot_response_timeout_ms
+      } : {
+        health_check_interval_minutes: 5,
+        auto_failover_enabled: true,
+        fallback_to_static_responses: true,
+        chatbot_thread_management: true,
+        chatbot_auto_initialize: true,
+        chatbot_fallback_enabled: true,
+        chatbot_max_conversation_length: 50,
+        chatbot_response_timeout_ms: 30000
+      },
+      chatbot_config: settings ? {
+        assistant_id: settings.chatbot_assistant_id,
+        thread_management: settings.chatbot_thread_management,
+        auto_initialize: settings.chatbot_auto_initialize,
+        fallback_enabled: settings.chatbot_fallback_enabled,
+        max_conversation_length: settings.chatbot_max_conversation_length,
+        response_timeout_ms: settings.chatbot_response_timeout_ms
+      } : undefined
+    }
+
+    console.log('[Portal API] Successfully loaded AI providers:', providers?.length || 0, 'providers')
+
+    return NextResponse.json(response)
 
   } catch (error) {
-    console.error('Error loading AI providers:', error)
+    console.error('[Portal API] Error in GET /api/admin/ai-providers:', error)
     return NextResponse.json({ error: 'Failed to load AI providers' }, { status: 500 })
   }
 }
@@ -196,17 +195,17 @@ export async function POST(request: NextRequest) {
 
   try {
     const body = await request.json()
-    const { action, provider } = body
+    const { action, provider, config } = body
 
-    const data = loadProvidersData()
+    const supabase = getSupabaseClient()
 
     switch (action) {
-      case 'create':
-        const newProvider: AIProvider = {
+      case 'create': {
+        const newProvider: Partial<AIProvider> = {
           id: `${provider.provider_type}-${Date.now()}`,
           name: provider.name,
           provider_type: provider.provider_type,
-          api_key: provider.api_key || '',
+          api_key: provider.api_key || null,
           endpoint: provider.endpoint,
           model: provider.model,
           priority: provider.priority || 999,
@@ -215,161 +214,227 @@ export async function POST(request: NextRequest) {
           timeout_seconds: provider.timeout_seconds || 30,
           use_case: provider.use_case || 'general',
           description: provider.description || '',
+          is_global: true,
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString()
         }
 
-        data.providers.push(newProvider)
-        data.providers.sort((a, b) => a.priority - b.priority)
-        saveProvidersData(data)
+        const { data, error } = await supabase
+          .from('ai_providers')
+          .insert([newProvider])
+          .select()
+          .single()
 
-        // Update environment variables if it's an OpenAI provider with Assistant ID
-        if (newProvider.provider_type === 'openai' && newProvider.api_key && newProvider.api_key.startsWith('asst_')) {
-          const envKey = `${newProvider.use_case?.toUpperCase()}_ASSISTANT_ID`
-          updateEnvFile({ [envKey]: newProvider.api_key })
+        if (error) {
+          console.error('[Portal API] Error creating provider:', error)
+          return NextResponse.json({ error: 'Failed to create AI provider' }, { status: 500 })
         }
 
-        // Log to Supabase
-        await logProviderChange('created', newProvider)
+        // Log to activity (optional)
+        try {
+          await supabase.from('ai_sessions').insert([{
+            session_id: `portal_admin_${Date.now()}`,
+            user_hash: 'portal_admin',
+            session_name: `Provider created: ${newProvider.name}`,
+            ai_provider: newProvider.provider_type,
+            assessment_data: { action: 'created', providerId: newProvider.id }
+          }])
+        } catch (logError) {
+          console.warn('[Portal API] Failed to log provider creation:', logError)
+        }
 
-        // Verify Supabase connection
-        const supabaseVerification = await verifySupabaseConnection()
+        console.log('[Portal API] Provider created successfully:', data.id)
 
         return NextResponse.json({
           success: true,
           message: 'AI provider created successfully',
-          provider: { ...newProvider, api_key: newProvider.api_key ? '***configured***' : '' },
-          supabaseStatus: supabaseVerification
+          provider: { ...data, api_key: data.api_key ? '***configured***' : '' }
         })
+      }
 
-      case 'update':
-        const providerIndex = data.providers.findIndex(p => p.id === provider.id)
-        if (providerIndex === -1) {
-          return NextResponse.json({ error: 'AI provider not found' }, { status: 404 })
+      case 'update': {
+        const { error } = await supabase
+          .from('ai_providers')
+          .update({
+            ...provider,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', provider.id)
+
+        if (error) {
+          console.error('[Portal API] Error updating provider:', error)
+          return NextResponse.json({ error: 'Failed to update AI provider' }, { status: 500 })
         }
 
-        data.providers[providerIndex] = {
-          ...data.providers[providerIndex],
-          ...provider,
-          updated_at: new Date().toISOString()
-        }
-
-        data.providers.sort((a, b) => a.priority - b.priority)
-        saveProvidersData(data)
-
-        // Update environment variables if it's an OpenAI provider with Assistant ID
-        const updatedProvider = data.providers[providerIndex]
-        if (updatedProvider.provider_type === 'openai' && updatedProvider.api_key && updatedProvider.api_key.startsWith('asst_')) {
-          const envKey = `${updatedProvider.use_case?.toUpperCase()}_ASSISTANT_ID`
-          updateEnvFile({ [envKey]: updatedProvider.api_key })
-        }
-
-        // Log to Supabase
-        await logProviderChange('updated', updatedProvider)
+        console.log('[Portal API] Provider updated successfully:', provider.id)
 
         return NextResponse.json({
           success: true,
           message: 'AI provider updated successfully'
         })
+      }
 
-      case 'delete':
-        const deleteIndex = data.providers.findIndex(p => p.id === provider.id)
-        if (deleteIndex === -1) {
-          return NextResponse.json({ error: 'AI provider not found' }, { status: 404 })
+      case 'delete': {
+        const { error } = await supabase
+          .from('ai_providers')
+          .delete()
+          .eq('id', provider.id)
+
+        if (error) {
+          console.error('[Portal API] Error deleting provider:', error)
+          return NextResponse.json({ error: 'Failed to delete AI provider' }, { status: 500 })
         }
 
-        data.providers.splice(deleteIndex, 1)
-        saveProvidersData(data)
+        console.log('[Portal API] Provider deleted successfully:', provider.id)
 
         return NextResponse.json({
           success: true,
           message: 'AI provider deleted successfully'
         })
+      }
 
-      case 'test_connection':
-        // Get the full provider details for testing
-        const fullProvider = data.providers.find(p => p.id === provider.id)
-        if (!fullProvider) {
+      case 'test_connection': {
+        // Get full provider details
+        const { data: fullProvider, error: fetchError } = await supabase
+          .from('ai_providers')
+          .select('*')
+          .eq('id', provider.id)
+          .single()
+
+        if (fetchError || !fullProvider) {
           return NextResponse.json({ error: 'Provider not found for testing' }, { status: 404 })
         }
 
-        // Test the API connection
+        console.log('[Portal API] Testing connection for provider:', fullProvider.name)
+
+        // Test the connection
         const testResult = await testProviderConnection(fullProvider)
 
         // Record health check
-        const healthCheck: HealthCheck = {
-          id: `test-${Date.now()}`,
+        const healthCheckId = `hc_${provider.id}_${Date.now()}`
+        await supabase.from('ai_provider_health_checks').insert([{
+          id: healthCheckId,
           provider_id: provider.id,
           status: testResult.success ? 'healthy' : 'down',
           response_time_ms: testResult.response_time,
-          error_message: testResult.error,
+          error_message: testResult.error || null,
           checked_at: new Date().toISOString()
+        }])
+
+        // Clean up old health checks (keep last 100 per provider)
+        const { data: oldChecks } = await supabase
+          .from('ai_provider_health_checks')
+          .select('id')
+          .eq('provider_id', provider.id)
+          .order('checked_at', { ascending: false })
+          .range(100, 999)
+
+        if (oldChecks && oldChecks.length > 0) {
+          await supabase
+            .from('ai_provider_health_checks')
+            .delete()
+            .in('id', oldChecks.map(c => c.id))
         }
 
-        data.health_checks.push(healthCheck)
-        data.health_checks = data.health_checks.slice(-100) // Keep last 100 checks
-        saveProvidersData(data)
+        console.log('[Portal API] Connection test result:', testResult.success ? 'success' : 'failed')
 
         return NextResponse.json({
           success: testResult.success,
           message: testResult.success ? 'Connection successful' : 'Connection failed',
-          test_result: testResult,
-          health_check: healthCheck
+          test_result: testResult
         })
+      }
 
-      case 'update_settings':
-        data.settings = { ...data.settings, ...provider }
-        saveProvidersData(data)
+      case 'update_settings': {
+        const { error } = await supabase
+          .from('ai_provider_settings')
+          .update({
+            ...provider,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', 'global')
+
+        if (error) {
+          console.error('[Portal API] Error updating settings:', error)
+          return NextResponse.json({ error: 'Failed to update settings' }, { status: 500 })
+        }
+
+        console.log('[Portal API] Settings updated successfully')
 
         return NextResponse.json({
           success: true,
           message: 'Settings updated successfully'
         })
+      }
 
-      case 'update_chatbot_config':
-        data.chatbot_config = { ...data.chatbot_config, ...body.config }
-        saveProvidersData(data)
+      case 'update_chatbot_config': {
+        const { error } = await supabase
+          .from('ai_provider_settings')
+          .update({
+            chatbot_assistant_id: config.assistant_id,
+            chatbot_thread_management: config.thread_management,
+            chatbot_auto_initialize: config.auto_initialize,
+            chatbot_fallback_enabled: config.fallback_enabled,
+            chatbot_max_conversation_length: config.max_conversation_length,
+            chatbot_response_timeout_ms: config.response_timeout_ms,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', 'global')
+
+        if (error) {
+          console.error('[Portal API] Error updating chatbot config:', error)
+          return NextResponse.json({ error: 'Failed to update chatbot configuration' }, { status: 500 })
+        }
+
+        console.log('[Portal API] Chatbot configuration updated successfully')
 
         return NextResponse.json({
           success: true,
           message: 'Chatbot configuration updated successfully'
         })
+      }
 
-      case 'verify_supabase':
-        const supabaseResult = await verifySupabaseConnection()
-        return NextResponse.json({
-          success: supabaseResult.success,
-          message: supabaseResult.success ? 'Supabase connection verified' : 'Supabase connection failed',
-          details: supabaseResult
-        })
+      case 'verify_supabase': {
+        try {
+          const { error } = await supabase
+            .from('ai_providers')
+            .select('count(*)', { count: 'exact', head: true })
 
-      case 'update_env':
-        const { envUpdates } = body
-        if (envUpdates && typeof envUpdates === 'object') {
-          updateEnvFile(envUpdates)
+          if (error) {
+            return NextResponse.json({
+              success: false,
+              message: 'Supabase connection failed',
+              details: { error: error.message }
+            })
+          }
+
           return NextResponse.json({
             success: true,
-            message: 'Environment variables updated successfully',
-            note: 'Restart the application to apply changes'
+            message: 'Supabase connection verified'
           })
-        } else {
-          return NextResponse.json({ error: 'Invalid environment updates' }, { status: 400 })
+        } catch (error: any) {
+          return NextResponse.json({
+            success: false,
+            message: 'Supabase connection failed',
+            details: { error: error.message }
+          })
         }
+      }
 
       default:
         return NextResponse.json({ error: 'Invalid action' }, { status: 400 })
     }
 
-  } catch (error) {
-    console.error('Error managing AI providers:', error)
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+  } catch (error: any) {
+    console.error('[Portal API] Error in POST /api/admin/ai-providers:', error)
     return NextResponse.json({
       error: 'Failed to manage AI provider',
-      details: errorMessage
+      details: error.message
     }, { status: 500 })
   }
 }
 
+// Test provider connection
 async function testProviderConnection(provider: AIProvider): Promise<{
   success: boolean
   response_time?: number
@@ -379,7 +444,17 @@ async function testProviderConnection(provider: AIProvider): Promise<{
   const startTime = Date.now()
 
   try {
-    console.log('Testing provider:', provider.name, 'Type:', provider.provider_type)
+    console.log('[Portal API] Testing provider:', provider.name, 'Type:', provider.provider_type)
+
+    // Resolve API key (handle env: prefix)
+    const apiKey = resolveApiKey(provider.api_key)
+    if (!apiKey || apiKey.startsWith('env:')) {
+      return {
+        success: false,
+        response_time: Date.now() - startTime,
+        error: `API key not configured for ${provider.provider_type}`
+      }
+    }
 
     const testMessage = "Hello, this is a connection test."
     let response: Response
@@ -390,7 +465,7 @@ async function testProviderConnection(provider: AIProvider): Promise<{
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'x-api-key': provider.api_key,
+            'x-api-key': apiKey,
             'anthropic-version': '2023-06-01'
           },
           body: JSON.stringify({
@@ -403,32 +478,26 @@ async function testProviderConnection(provider: AIProvider): Promise<{
         break
 
       case 'openai':
-        // For OpenAI, use environment API key and provider's assistant_id
-        const openaiApiKey = process.env.OPENAI_API_KEY
-        if (!openaiApiKey) {
-          throw new Error('OPENAI_API_KEY environment variable not set')
-        }
-
-        // If provider has assistant ID, test assistant API, otherwise test chat completions
+        // Test OpenAI connection
         if (provider.api_key && provider.api_key.startsWith('asst_')) {
-          // Test OpenAI Assistant API
+          // Test Assistant API
           response = await fetch('https://api.openai.com/v1/threads', {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
-              'Authorization': `Bearer ${openaiApiKey}`,
-              'OpenAI-Beta': 'assistants=v1'
+              'Authorization': `Bearer ${apiKey}`,
+              'OpenAI-Beta': 'assistants=v2'
             },
             body: JSON.stringify({}),
             signal: AbortSignal.timeout(provider.timeout_seconds * 1000)
           })
         } else {
-          // Test regular chat completions
+          // Test Chat Completions
           response = await fetch(provider.endpoint || 'https://api.openai.com/v1/chat/completions', {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
-              'Authorization': `Bearer ${openaiApiKey}`
+              'Authorization': `Bearer ${apiKey}`
             },
             body: JSON.stringify({
               model: provider.model,
@@ -461,13 +530,12 @@ async function testProviderConnection(provider: AIProvider): Promise<{
       response: 'Connection successful'
     }
 
-  } catch (error) {
+  } catch (error: any) {
     const responseTime = Date.now() - startTime
-    const errorMessage = error instanceof Error ? error.message : (typeof error === 'string' ? error : 'Unknown error')
     return {
       success: false,
       response_time: responseTime,
-      error: errorMessage
+      error: error?.message || error?.toString() || 'Unknown error'
     }
   }
 }

@@ -278,7 +278,7 @@ export default function AIProvidersAdmin() {
   // Get dynamic tabs based on AI providers
   const getDynamicTabs = () => {
     const baseTabs = [
-      { id: 'demo-estimator', name: 'Demo AI Estimator', icon: <Zap className="w-4 h-4" /> },
+      { id: 'demo-estimator', name: 'AI Estimator', icon: <Zap className="w-4 h-4" /> },
       { id: 'chatbot', name: 'Chatbot', icon: <MessageSquare className="w-4 h-4" /> }
     ]
 
@@ -353,14 +353,14 @@ export default function AIProvidersAdmin() {
           </div>
         </div>
 
-        {/* Demo AI Estimator Tab */}
+        {/* AI Estimator Tab */}
         {activeTab === 'demo-estimator' && (
           <div className="space-y-8">
             {/* Add New Provider */}
             <div className="bg-black/20 backdrop-blur-xl border border-purple-500/30 rounded-2xl p-6">
               <h2 className="text-2xl font-bold text-white mb-6 flex items-center gap-3">
                 <Zap className="w-6 h-6 text-purple-400" />
-                Add Demo AI Estimator Provider
+                Add AI Estimator Provider
               </h2>
               <p className="text-gray-300 mb-6">Manage AI providers for the estimate options page (/estimate-options) with priority-based failover capabilities.</p>
               <div className="grid md:grid-cols-2 gap-4">
@@ -449,12 +449,12 @@ export default function AIProvidersAdmin() {
               </div>
             </div>
 
-            {/* Demo AI Estimator Providers List */}
+            {/* AI Estimator Providers List */}
             <div className="bg-black/20 backdrop-blur-xl border border-purple-500/30 rounded-2xl p-6">
               <div className="flex items-center justify-between mb-6">
                 <h2 className="text-2xl font-bold text-white flex items-center gap-3">
                   <Zap className="w-6 h-6 text-purple-400" />
-                  Demo AI Estimator Providers
+                  AI Estimator Providers
                 </h2>
                 <div className="text-sm text-gray-400">
                   Priority-based failover for /estimate-options
