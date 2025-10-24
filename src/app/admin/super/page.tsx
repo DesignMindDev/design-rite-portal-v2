@@ -269,7 +269,22 @@ export default function UserManagementPage() {
   const fetchOperationsData = async () => {
     try {
       setOperationsLoading(true);
-      const response = await fetch(`/api/admin/operations?timeRange=${timeRange}`);
+
+      // Get the authenticated session
+      const { supabase } = await import('@/lib/supabase');
+      const { data: { session } } = await supabase.auth.getSession();
+
+      if (!session) {
+        console.error('[Operations] No session found');
+        toast.error('Session expired. Please sign in again.');
+        return;
+      }
+
+      const response = await fetch(`/api/admin/operations?timeRange=${timeRange}`, {
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`
+        }
+      });
 
       if (!response.ok) {
         throw new Error('Failed to fetch operations data');

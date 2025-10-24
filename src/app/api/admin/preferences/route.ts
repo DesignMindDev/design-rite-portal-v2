@@ -1,24 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import { requireEmployee } from '@/lib/api-auth';
 
 // Force dynamic rendering
 export const dynamic = 'force-dynamic';
 
-// Create Supabase client
-const createSupabaseClient = (accessToken?: string) => {
-  const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL || '',
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '',
-    accessToken ? {
-      global: {
-        headers: {
-          Authorization: `Bearer ${accessToken}`
-        }
-      }
-    } : undefined
-  );
-  return supabase;
-};
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL || '',
+  process.env.SUPABASE_SERVICE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''
+);
 
 interface DashboardPreferences {
   widget_visibility: {
@@ -44,36 +34,17 @@ interface DashboardPreferences {
  * Fetch user's dashboard preferences
  */
 export async function GET(request: NextRequest) {
+  const auth = await requireEmployee(request);
+  if (auth.error) return auth.error;
+
   try {
-    // Get the authorization header
-    const authHeader = request.headers.get('authorization');
-    if (!authHeader) {
-      return NextResponse.json(
-        { error: 'Unauthorized - No authorization header' },
-        { status: 401 }
-      );
-    }
-
-    const token = authHeader.replace('Bearer ', '');
-    const supabase = createSupabaseClient(token);
-
-    // Verify the user's session
-    const { data: { user }, error: userError } = await supabase.auth.getUser(token);
-
-    if (userError || !user) {
-      return NextResponse.json(
-        { error: 'Unauthorized - Invalid token' },
-        { status: 401 }
-      );
-    }
-
-    console.log('[Preferences API] Fetching preferences for user:', user.email);
+    console.log('[Preferences API] Fetching preferences for user:', auth.user?.email);
 
     // Fetch user's preferences
     const { data: preferences, error: preferencesError } = await supabase
       .from('dashboard_preferences')
       .select('*')
-      .eq('user_id', user.id)
+      .eq('user_id', auth.user!.id)
       .single();
 
     if (preferencesError) {
@@ -144,34 +115,15 @@ export async function GET(request: NextRequest) {
  * Save/update user's dashboard preferences
  */
 export async function POST(request: NextRequest) {
+  const auth = await requireEmployee(request);
+  if (auth.error) return auth.error;
+
   try {
-    // Get the authorization header
-    const authHeader = request.headers.get('authorization');
-    if (!authHeader) {
-      return NextResponse.json(
-        { error: 'Unauthorized - No authorization header' },
-        { status: 401 }
-      );
-    }
-
-    const token = authHeader.replace('Bearer ', '');
-    const supabase = createSupabaseClient(token);
-
-    // Verify the user's session
-    const { data: { user }, error: userError } = await supabase.auth.getUser(token);
-
-    if (userError || !user) {
-      return NextResponse.json(
-        { error: 'Unauthorized - Invalid token' },
-        { status: 401 }
-      );
-    }
-
     // Parse request body
     const body = await request.json();
     const preferences: DashboardPreferences = body.preferences;
 
-    console.log('[Preferences API] Saving preferences for user:', user.email);
+    console.log('[Preferences API] Saving preferences for user:', auth.user?.email);
 
     // Validate preferences structure
     if (!preferences || typeof preferences !== 'object') {
@@ -185,7 +137,7 @@ export async function POST(request: NextRequest) {
     const { data, error: upsertError } = await supabase
       .from('dashboard_preferences')
       .upsert({
-        user_id: user.id,
+        user_id: auth.user!.id,
         widget_visibility: preferences.widget_visibility,
         card_size: preferences.card_size,
         grid_density: preferences.grid_density,
