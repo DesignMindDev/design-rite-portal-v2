@@ -4,7 +4,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { Users, UserPlus, Shield, Activity, TrendingUp, ArrowLeft, RefreshCw, Edit, Key, Trash2, X, Save, DollarSign, Cpu, Clock, AlertCircle, CheckCircle, Box, MessageSquare, Calendar, ChevronDown, ChevronUp, Settings, LayoutDashboard } from 'lucide-react';
+import { Users, UserPlus, Shield, Activity, TrendingUp, ArrowLeft, RefreshCw, Edit, Key, Trash2, X, Save, DollarSign, Cpu, Clock, AlertCircle, CheckCircle, Box, MessageSquare, Calendar, ChevronDown, ChevronUp, Settings, LayoutDashboard, Server, Database, Globe, Bell, XCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import MetricCard from '@/components/dashboard/MetricCard';
 import ActivityFeed from '@/components/dashboard/ActivityFeed';
@@ -80,6 +80,39 @@ interface OperationsData {
   }>;
 }
 
+interface ServiceHealth {
+  name: string;
+  status: 'healthy' | 'degraded' | 'down';
+  responseTime: number;
+  uptime: number;
+  lastChecked: string;
+  url: string;
+}
+
+interface ErrorLog {
+  id: string;
+  severity: 'low' | 'medium' | 'high' | 'critical';
+  message: string;
+  service: string;
+  timestamp: string;
+  count: number;
+}
+
+interface MonitoringData {
+  services: ServiceHealth[];
+  errors: ErrorLog[];
+  database: {
+    connections: number;
+    activeConnections: number;
+    slowQueries: number;
+    avgQueryTime: number;
+  };
+  alerts: {
+    unread: number;
+    total: number;
+  };
+}
+
 export default function UserManagementPage() {
   const { user, loading: authLoading, userRole } = useAuth();
   const router = useRouter();
@@ -102,8 +135,12 @@ export default function UserManagementPage() {
   const [operationsExpanded, setOperationsExpanded] = useState(true);
   const [timeRange, setTimeRange] = useState<'24h' | '7d' | '30d'>('24h');
 
+  // Monitoring state
+  const [monitoringData, setMonitoringData] = useState<MonitoringData | null>(null);
+  const [monitoringLoading, setMonitoringLoading] = useState(false);
+
   // Tab state
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'users' | 'settings'>('users');
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'users' | 'settings' | 'monitoring'>('users');
 
   // Dashboard preferences state
   const [preferences, setPreferences] = useState({
@@ -170,6 +207,13 @@ export default function UserManagementPage() {
       fetchOperationsData();
     }
   }, [timeRange]);
+
+  // Fetch monitoring data when tab is active
+  useEffect(() => {
+    if (user && isSuperAdmin && activeTab === 'monitoring') {
+      fetchMonitoringData();
+    }
+  }, [user, isSuperAdmin, activeTab]);
 
   const fetchUsers = async () => {
     try {
@@ -238,6 +282,40 @@ export default function UserManagementPage() {
       toast.error('Failed to load operations data');
     } finally {
       setOperationsLoading(false);
+    }
+  };
+
+  const fetchMonitoringData = async () => {
+    try {
+      setMonitoringLoading(true);
+
+      // Get the authenticated session
+      const { supabase } = await import('@/lib/supabase');
+      const { data: { session } } = await supabase.auth.getSession();
+
+      if (!session) {
+        console.error('[Monitoring] No session found');
+        toast.error('Session expired. Please sign in again.');
+        return;
+      }
+
+      const response = await fetch('/api/admin/monitoring', {
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch monitoring data');
+      }
+
+      const result = await response.json();
+      setMonitoringData(result);
+    } catch (error) {
+      console.error('[Monitoring] Load error:', error);
+      toast.error('Failed to load monitoring data');
+    } finally {
+      setMonitoringLoading(false);
     }
   };
 
@@ -526,6 +604,17 @@ export default function UserManagementPage() {
               >
                 <Settings className="w-5 h-5" />
                 Settings
+              </button>
+              <button
+                onClick={() => setActiveTab('monitoring')}
+                className={`flex items-center gap-2 py-4 px-1 border-b-2 font-medium text-sm transition-colors ${
+                  activeTab === 'monitoring'
+                    ? 'border-indigo-500 text-indigo-600'
+                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                }`}
+              >
+                <Server className="w-5 h-5" />
+                Monitoring
               </button>
             </nav>
           </div>
@@ -1241,6 +1330,241 @@ export default function UserManagementPage() {
                 {preferencesSaving ? 'Saving...' : 'Save Preferences'}
               </button>
             </div>
+          </div>
+        )}
+
+        {/* Monitoring Tab Content */}
+        {activeTab === 'monitoring' && (
+          <div className="space-y-6">
+            {/* Header Section */}
+            <div className="bg-gradient-to-r from-blue-500 to-blue-600 rounded-xl p-6 text-white shadow-lg">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-4">
+                  <Server className="w-10 h-10" />
+                  <div>
+                    <h2 className="text-2xl font-bold">Production Monitoring</h2>
+                    <p className="text-blue-100 text-sm">Real-time service health, errors, and performance metrics</p>
+                  </div>
+                </div>
+                <button
+                  onClick={fetchMonitoringData}
+                  disabled={monitoringLoading}
+                  className="px-4 py-2 bg-white/20 hover:bg-white/30 rounded-lg transition-colors flex items-center gap-2"
+                >
+                  <RefreshCw className={`w-4 h-4 ${monitoringLoading ? 'animate-spin' : ''}`} />
+                  Refresh
+                </button>
+              </div>
+            </div>
+
+            {monitoringLoading && !monitoringData ? (
+              <div className="flex items-center justify-center py-20">
+                <div className="text-center">
+                  <RefreshCw className="w-12 h-12 text-blue-600 animate-spin mx-auto mb-4" />
+                  <p className="text-gray-600">Loading monitoring data...</p>
+                </div>
+              </div>
+            ) : monitoringData ? (
+              <>
+                {/* Service Health Status */}
+                <section>
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-xl font-bold text-gray-900">Service Health Status</h3>
+                    <span className="text-sm text-gray-500">Last checked: {new Date(monitoringData.services[0]?.lastChecked || Date.now()).toLocaleTimeString()}</span>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {monitoringData.services.map((service) => (
+                      <div key={service.name} className="bg-white rounded-xl border-2 border-gray-200 p-6 shadow-sm hover:shadow-md transition-shadow">
+                        <div className="flex items-start justify-between mb-4">
+                          <div className="flex items-center gap-3">
+                            <div className={`w-12 h-12 rounded-lg flex items-center justify-center ${
+                              service.status === 'healthy' ? 'bg-green-100' :
+                              service.status === 'degraded' ? 'bg-amber-100' : 'bg-red-100'
+                            }`}>
+                              {service.status === 'healthy' ? <CheckCircle className="w-6 h-6 text-green-600" /> :
+                               service.status === 'degraded' ? <AlertCircle className="w-6 h-6 text-amber-600" /> :
+                               <XCircle className="w-6 h-6 text-red-600" />}
+                            </div>
+                            <div>
+                              <h4 className="font-semibold text-gray-900">{service.name}</h4>
+                              <p className="text-xs text-gray-500">{service.url}</p>
+                            </div>
+                          </div>
+                          <span className={`px-3 py-1 rounded-full text-xs font-semibold ${
+                            service.status === 'healthy' ? 'bg-green-100 text-green-700' :
+                            service.status === 'degraded' ? 'bg-amber-100 text-amber-700' : 'bg-red-100 text-red-700'
+                          }`}>
+                            {service.status.toUpperCase()}
+                          </span>
+                        </div>
+                        <div className="grid grid-cols-2 gap-4 text-sm">
+                          <div>
+                            <p className="text-gray-500">Response Time</p>
+                            <p className={`font-semibold ${
+                              service.responseTime < 500 ? 'text-green-600' :
+                              service.responseTime < 1000 ? 'text-amber-600' : 'text-red-600'
+                            }`}>{service.responseTime}ms</p>
+                          </div>
+                          <div>
+                            <p className="text-gray-500">Uptime</p>
+                            <p className={`font-semibold ${
+                              service.uptime >= 99 ? 'text-green-600' :
+                              service.uptime >= 95 ? 'text-amber-600' : 'text-red-600'
+                            }`}>{service.uptime}%</p>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </section>
+
+                {/* Database Performance */}
+                <section>
+                  <h3 className="text-xl font-bold text-gray-900 mb-4">Database Performance</h3>
+                  <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
+                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                      <div className="bg-blue-50 rounded-lg p-4">
+                        <div className="flex items-center gap-2 mb-2">
+                          <Database className="w-5 h-5 text-blue-600" />
+                          <p className="text-sm text-blue-600 font-medium">Total Connections</p>
+                        </div>
+                        <p className="text-2xl font-bold text-blue-900">{monitoringData.database.connections}</p>
+                      </div>
+                      <div className="bg-green-50 rounded-lg p-4">
+                        <div className="flex items-center gap-2 mb-2">
+                          <Activity className="w-5 h-5 text-green-600" />
+                          <p className="text-sm text-green-600 font-medium">Active Now</p>
+                        </div>
+                        <p className="text-2xl font-bold text-green-900">{monitoringData.database.activeConnections}</p>
+                      </div>
+                      <div className="bg-amber-50 rounded-lg p-4">
+                        <div className="flex items-center gap-2 mb-2">
+                          <Clock className="w-5 h-5 text-amber-600" />
+                          <p className="text-sm text-amber-600 font-medium">Slow Queries</p>
+                        </div>
+                        <p className="text-2xl font-bold text-amber-900">{monitoringData.database.slowQueries}</p>
+                      </div>
+                      <div className="bg-purple-50 rounded-lg p-4">
+                        <div className="flex items-center gap-2 mb-2">
+                          <TrendingUp className="w-5 h-5 text-purple-600" />
+                          <p className="text-sm text-purple-600 font-medium">Avg Query Time</p>
+                        </div>
+                        <p className="text-2xl font-bold text-purple-900">{monitoringData.database.avgQueryTime}ms</p>
+                      </div>
+                    </div>
+                  </div>
+                </section>
+
+                {/* Recent Errors */}
+                <section>
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-xl font-bold text-gray-900">Recent Errors & Alerts</h3>
+                    <div className="flex items-center gap-2">
+                      <Bell className="w-5 h-5 text-gray-500" />
+                      <span className="text-sm font-medium text-gray-700">
+                        {monitoringData.alerts.unread} unread / {monitoringData.alerts.total} total
+                      </span>
+                    </div>
+                  </div>
+                  <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+                    {monitoringData.errors.length === 0 ? (
+                      <div className="p-12 text-center">
+                        <CheckCircle className="w-16 h-16 text-green-500 mx-auto mb-4" />
+                        <h4 className="text-lg font-semibold text-gray-900 mb-2">No Errors Detected</h4>
+                        <p className="text-gray-600">All systems are running smoothly</p>
+                      </div>
+                    ) : (
+                      <div className="divide-y divide-gray-200">
+                        {monitoringData.errors.map((error) => (
+                          <div key={error.id} className="p-4 hover:bg-gray-50 transition-colors">
+                            <div className="flex items-start justify-between gap-4">
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center gap-3 mb-2">
+                                  <span className={`px-2 py-1 rounded text-xs font-semibold ${
+                                    error.severity === 'critical' ? 'bg-red-100 text-red-700' :
+                                    error.severity === 'high' ? 'bg-orange-100 text-orange-700' :
+                                    error.severity === 'medium' ? 'bg-amber-100 text-amber-700' :
+                                    'bg-gray-100 text-gray-700'
+                                  }`}>
+                                    {error.severity.toUpperCase()}
+                                  </span>
+                                  <span className="text-xs font-medium text-gray-500">{error.service}</span>
+                                  {error.count > 1 && (
+                                    <span className="bg-blue-100 text-blue-700 px-2 py-1 rounded text-xs font-semibold">
+                                      {error.count}x
+                                    </span>
+                                  )}
+                                </div>
+                                <p className="text-sm font-medium text-gray-900 mb-1">{error.message}</p>
+                                <p className="text-xs text-gray-500">
+                                  {new Date(error.timestamp).toLocaleString()}
+                                </p>
+                              </div>
+                              <AlertCircle className={`w-5 h-5 flex-shrink-0 ${
+                                error.severity === 'critical' ? 'text-red-600' :
+                                error.severity === 'high' ? 'text-orange-600' :
+                                error.severity === 'medium' ? 'text-amber-600' : 'text-gray-600'
+                              }`} />
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </section>
+
+                {/* Alert Preferences (Coming Soon) */}
+                <section>
+                  <h3 className="text-xl font-bold text-gray-900 mb-4">Alert Preferences</h3>
+                  <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+                        <div>
+                          <div className="font-medium text-gray-900">In-App Notifications</div>
+                          <div className="text-sm text-gray-600">Show real-time alerts in the admin dashboard</div>
+                        </div>
+                        <label className="relative inline-flex items-center cursor-pointer">
+                          <input type="checkbox" defaultChecked className="sr-only peer" />
+                          <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                        </label>
+                      </div>
+                      <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+                        <div>
+                          <div className="font-medium text-gray-900">Email Alerts</div>
+                          <div className="text-sm text-gray-600">Send critical alerts to admin email addresses</div>
+                        </div>
+                        <label className="relative inline-flex items-center cursor-pointer">
+                          <input type="checkbox" defaultChecked className="sr-only peer" />
+                          <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                        </label>
+                      </div>
+                      <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg opacity-50">
+                        <div>
+                          <div className="font-medium text-gray-900">Slack Integration</div>
+                          <div className="text-sm text-gray-600">Post alerts to Slack channel (Coming Soon)</div>
+                        </div>
+                        <label className="relative inline-flex items-center cursor-not-allowed">
+                          <input type="checkbox" disabled className="sr-only peer" />
+                          <div className="w-11 h-6 bg-gray-200 rounded-full peer"></div>
+                        </label>
+                      </div>
+                    </div>
+                  </div>
+                </section>
+              </>
+            ) : (
+              <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-12 text-center">
+                <AlertCircle className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+                <h3 className="text-lg font-semibold text-gray-900 mb-2">No Monitoring Data</h3>
+                <p className="text-gray-600 mb-4">Click refresh to load production monitoring metrics</p>
+                <button
+                  onClick={fetchMonitoringData}
+                  className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                >
+                  Load Monitoring Data
+                </button>
+              </div>
+            )}
           </div>
         )}
       </div>
