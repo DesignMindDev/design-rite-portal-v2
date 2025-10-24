@@ -75,7 +75,7 @@ async function checkServiceHealth() {
     },
     {
       name: 'MCP Harvester',
-      url: 'http://localhost:8000',
+      url: process.env.MCP_HARVESTER_URL || 'http://localhost:8000',
       healthEndpoint: '/health'
     },
     {
