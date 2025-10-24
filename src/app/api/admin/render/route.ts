@@ -6,18 +6,27 @@ import { rateLimiters } from '@/lib/rate-limit';
 export const dynamic = 'force-dynamic';
 
 // Require RENDER_API_KEY from environment variable (no fallback)
+// Check at runtime during request handlers, not at build time
 const RENDER_API_KEY = process.env.RENDER_API_KEY;
-if (!RENDER_API_KEY) {
-  throw new Error('RENDER_API_KEY environment variable is required');
-}
-
 const RENDER_API_BASE = 'https://api.render.com/v1';
+
+/**
+ * Validates RENDER_API_KEY is set - called at runtime only
+ */
+function validateApiKey() {
+  if (!RENDER_API_KEY) {
+    throw new Error('RENDER_API_KEY environment variable is required');
+  }
+}
 
 /**
  * Render.com Integration API
  * Provides service status, deployments, and metrics from Render
  */
 export async function GET(request: NextRequest) {
+  // Validate API key at runtime
+  validateApiKey();
+
   // Apply rate limiting - 10 requests per 10 minutes
   const rateLimitResponse = await rateLimiters.adminStrict(request);
   if (rateLimitResponse) return rateLimitResponse;
@@ -238,6 +247,9 @@ async function getServiceDetails(serviceId: string) {
  * Trigger a manual deployment
  */
 export async function POST(request: NextRequest) {
+  // Validate API key at runtime
+  validateApiKey();
+
   // Apply rate limiting - 10 requests per 10 minutes
   const rateLimitResponse = await rateLimiters.adminStrict(request);
   if (rateLimitResponse) return rateLimitResponse;
