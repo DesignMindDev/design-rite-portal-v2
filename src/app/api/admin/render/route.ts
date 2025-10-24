@@ -1,10 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireEmployee } from '@/lib/api-auth';
+import { rateLimiters } from '@/lib/rate-limit';
 
 // Force dynamic rendering
 export const dynamic = 'force-dynamic';
 
-const RENDER_API_KEY = process.env.RENDER_API_KEY || 'rnd_6o7BYWraBuvow4iZbDpJov4y7gJQ';
+// Require RENDER_API_KEY from environment variable (no fallback)
+const RENDER_API_KEY = process.env.RENDER_API_KEY;
+if (!RENDER_API_KEY) {
+  throw new Error('RENDER_API_KEY environment variable is required');
+}
+
 const RENDER_API_BASE = 'https://api.render.com/v1';
 
 /**
@@ -12,6 +18,10 @@ const RENDER_API_BASE = 'https://api.render.com/v1';
  * Provides service status, deployments, and metrics from Render
  */
 export async function GET(request: NextRequest) {
+  // Apply rate limiting - 10 requests per 10 minutes
+  const rateLimitResponse = await rateLimiters.adminStrict(request);
+  if (rateLimitResponse) return rateLimitResponse;
+
   const auth = await requireEmployee(request);
   if (auth.error) return auth.error;
 
@@ -228,6 +238,10 @@ async function getServiceDetails(serviceId: string) {
  * Trigger a manual deployment
  */
 export async function POST(request: NextRequest) {
+  // Apply rate limiting - 10 requests per 10 minutes
+  const rateLimitResponse = await rateLimiters.adminStrict(request);
+  if (rateLimitResponse) return rateLimitResponse;
+
   const auth = await requireEmployee(request);
   if (auth.error) return auth.error;
 

@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { requireAuth } from '@/lib/api-auth'
+import { rateLimiters } from '@/lib/rate-limit'
 
 // Force dynamic rendering
 export const dynamic = 'force-dynamic'
@@ -42,14 +44,25 @@ interface CalculateRequest {
 
 export async function POST(request: NextRequest) {
   try {
+    // Apply rate limiting - 60 requests per minute
+    const rateLimitResponse = await rateLimiters.workspace(request)
+    if (rateLimitResponse) return rateLimitResponse
+
+    // Require authentication
+    const auth = await requireAuth(request)
+    if (auth.error) return auth.error
+
     const body: CalculateRequest = await request.json()
 
-    if (!body.user_id || !body.devices || body.devices.length === 0) {
+    if (!body.devices || body.devices.length === 0) {
       return NextResponse.json(
-        { error: 'user_id and devices array required' },
+        { error: 'devices array required' },
         { status: 400 }
       )
     }
+
+    // Use authenticated user's ID, ignore any provided user_id for security
+    const userId = auth.user!.id
 
     // Get user's active labor rate table (or use specified one)
     let rateTable
@@ -58,14 +71,14 @@ export async function POST(request: NextRequest) {
         .from('labor_rate_tables')
         .select('*')
         .eq('id', body.rate_table_id)
-        .eq('user_id', body.user_id)
+        .eq('user_id', userId)
         .single()
       rateTable = data
     } else {
       const { data } = await supabase
         .from('labor_rate_tables')
         .select('*')
-        .eq('user_id', body.user_id)
+        .eq('user_id', userId)
         .eq('is_active', true)
         .single()
       rateTable = data
@@ -101,7 +114,7 @@ export async function POST(request: NextRequest) {
     const { data: deviceStandards } = await supabase
       .from('device_labor_standards')
       .select('*')
-      .eq('user_id', body.user_id)
+      .eq('user_id', userId)
 
     if (!deviceStandards || deviceStandards.length === 0) {
       return NextResponse.json(
@@ -258,15 +271,27 @@ export async function POST(request: NextRequest) {
 // GET endpoint to retrieve user's labor rate configuration
 export async function GET(request: NextRequest) {
   try {
-    const { searchParams } = new URL(request.url)
-    const userId = searchParams.get('user_id')
+    // Apply rate limiting - 60 requests per minute
+    const rateLimitResponse = await rateLimiters.workspace(request)
+    if (rateLimitResponse) return rateLimitResponse
 
-    if (!userId) {
+    // Require authentication
+    const auth = await requireAuth(request)
+    if (auth.error) return auth.error
+
+    const { searchParams } = new URL(request.url)
+    const requestedUserId = searchParams.get('user_id')
+
+    // Validate user can only access their own data
+    if (requestedUserId && requestedUserId !== auth.user!.id) {
       return NextResponse.json(
-        { error: 'user_id parameter required' },
-        { status: 400 }
+        { error: 'Unauthorized: Cannot access another user\'s data' },
+        { status: 403 }
       )
     }
+
+    // Use authenticated user ID if none provided
+    const userId = requestedUserId || auth.user!.id
 
     // Get active rate table
     const { data: rateTable } = await supabase

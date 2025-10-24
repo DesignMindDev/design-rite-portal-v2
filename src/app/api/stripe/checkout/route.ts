@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import Stripe from 'stripe'
 import { createClient } from '@supabase/supabase-js'
 import { requireAuth } from '@/lib/api-auth'
+import { rateLimiters } from '@/lib/rate-limit'
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
   apiVersion: '2025-09-30.clover'
@@ -19,6 +20,10 @@ const supabase = createClient(
 )
 
 export async function POST(request: NextRequest) {
+  // Apply rate limiting - 5 requests per minute for payment operations
+  const rateLimitResponse = await rateLimiters.auth(request);
+  if (rateLimitResponse) return rateLimitResponse;
+
   // AUTHENTICATION CHECK
   const auth = await requireAuth(request);
   if (auth.error) return auth.error;

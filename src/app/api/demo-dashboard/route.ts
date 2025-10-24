@@ -6,6 +6,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { requireEmployee } from '@/lib/api-auth'
+import { rateLimiters } from '@/lib/rate-limit'
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -20,6 +21,10 @@ export const dynamic = 'force-dynamic'
  * Fetch demo bookings with statistics
  */
 export async function GET(request: NextRequest) {
+  // Apply rate limiting - 30 requests per minute
+  const rateLimitResponse = await rateLimiters.demoDashboard(request)
+  if (rateLimitResponse) return rateLimitResponse
+
   // Require employee role for access
   const auth = await requireEmployee(request)
   if (auth.error) return auth.error
@@ -85,6 +90,10 @@ export async function GET(request: NextRequest) {
  * Update demo booking status
  */
 export async function POST(request: NextRequest) {
+  // Apply rate limiting - 30 requests per minute
+  const rateLimitResponse = await rateLimiters.demoDashboard(request)
+  if (rateLimitResponse) return rateLimitResponse
+
   // Require employee role for access
   const auth = await requireEmployee(request)
   if (auth.error) return auth.error

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import { rateLimiters } from '@/lib/rate-limit';
 
 // Force dynamic rendering
 export const dynamic = 'force-dynamic';
@@ -15,6 +16,10 @@ const supabaseServiceKey = process.env.SUPABASE_SERVICE_KEY || process.env.NEXT_
  * Audit: Logs all user creation attempts with full context
  */
 export async function POST(request: NextRequest) {
+  // Apply strict rate limiting for user creation - 5 requests per hour
+  const rateLimitResponse = await rateLimiters.adminStrict(request);
+  if (rateLimitResponse) return rateLimitResponse;
+
   // Track audit log data
   let adminId: string | null = null;
   let targetEmail: string | null = null;

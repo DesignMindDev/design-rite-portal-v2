@@ -2,8 +2,13 @@ import { createServerClient } from '@supabase/ssr'
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 import { cookies } from 'next/headers'
+import { rateLimiters } from '@/lib/rate-limit'
 
 export async function GET(request: NextRequest) {
+  // Apply rate limiting - 5 requests per minute for auth operations
+  const rateLimitResponse = await rateLimiters.auth(request)
+  if (rateLimitResponse) return rateLimitResponse
+
   const { searchParams } = new URL(request.url)
   const token_hash = searchParams.get('token_hash')
   const type = searchParams.get('type')
