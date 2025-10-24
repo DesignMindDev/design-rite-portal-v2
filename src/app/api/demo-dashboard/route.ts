@@ -5,6 +5,7 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { requireEmployee } from '@/lib/api-auth'
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -19,6 +20,10 @@ export const dynamic = 'force-dynamic'
  * Fetch demo bookings with statistics
  */
 export async function GET(request: NextRequest) {
+  // Require employee role for access
+  const auth = await requireEmployee(request)
+  if (auth.error) return auth.error
+
   try {
     // Get all demo bookings
     const { data: bookings, error } = await supabase
@@ -80,6 +85,10 @@ export async function GET(request: NextRequest) {
  * Update demo booking status
  */
 export async function POST(request: NextRequest) {
+  // Require employee role for access
+  const auth = await requireEmployee(request)
+  if (auth.error) return auth.error
+
   try {
     const body = await request.json()
     const { booking_id, updates } = body
