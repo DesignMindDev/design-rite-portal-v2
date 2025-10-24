@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Monitoring API</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #0a0e27;
+            color: #e2e8f0;
+            padding: 40px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        .container {
+            background: #1e293b;
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+        }
+        h1 {
+            color: #667eea;
+            margin-bottom: 10px;
+        }
+        .subtitle {
+            color: #94a3b8;
+            margin-bottom: 30px;
+        }
+        button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            margin-right: 10px;
+            margin-bottom: 10px;
+            transition: transform 0.2s;
+        }
+        button:hover {
+            transform: translateY(-2px);
+        }
+        button:active {
+            transform: translateY(0);
+        }
+        .status {
+            padding: 15px;
+            border-radius: 8px;
+            margin: 20px 0;
+            font-weight: bold;
+        }
+        .status.success {
+            background: #10b98120;
+            border: 2px solid #10b981;
+            color: #10b981;
+        }
+        .status.error {
+            background: #ef444420;
+            border: 2px solid #ef4444;
+            color: #ef4444;
+        }
+        .status.info {
+            background: #3b82f620;
+            border: 2px solid #3b82f6;
+            color: #3b82f6;
+        }
+        pre {
+            background: #0f172a;
+            border: 1px solid #334155;
+            border-radius: 8px;
+            padding: 20px;
+            overflow-x: auto;
+            margin: 20px 0;
+            color: #94a3b8;
+        }
+        .service-card {
+            background: #2d3748;
+            border-radius: 10px;
+            padding: 20px;
+            margin: 15px 0;
+            border-left: 4px solid #667eea;
+        }
+        .service-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        .service-name {
+            font-size: 1.2em;
+            font-weight: bold;
+        }
+        .badge {
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 0.85em;
+            font-weight: bold;
+        }
+        .badge.healthy {
+            background: #10b981;
+            color: white;
+        }
+        .badge.degraded {
+            background: #f59e0b;
+            color: white;
+        }
+        .badge.down {
+            background: #ef4444;
+            color: white;
+        }
+        .metric {
+            display: inline-block;
+            margin-right: 20px;
+            margin-top: 10px;
+        }
+        .metric-label {
+            font-size: 0.85em;
+            color: #94a3b8;
+        }
+        .metric-value {
+            font-size: 1.1em;
+            font-weight: bold;
+            color: #10b981;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔍 Portal Monitoring API Test</h1>
+        <div class="subtitle">Test connection to Portal monitoring API and verify service health checks</div>
+
+        <button onclick="testConnection()">🔌 Test Connection</button>
+        <button onclick="fetchFullData()">📊 Fetch Full Data</button>
+        <button onclick="testDirectHealthCheck()">🎯 Test Direct Health Check (will fail)</button>
+        <button onclick="clearResults()">🗑️ Clear Results</button>
+
+        <div id="status"></div>
+        <div id="results"></div>
+    </div>
+
+    <script>
+        const PORTAL_URL = window.location.hostname === 'localhost'
+            ? 'http://localhost:3001'
+            : 'https://portal.design-rite.com';
+        const API_URL = `${PORTAL_URL}/api/admin/monitoring`;
+
+        function showStatus(message, type = 'info') {
+            const statusDiv = document.getElementById('status');
+            statusDiv.innerHTML = `<div class="status ${type}">${message}</div>`;
+        }
+
+        function showResults(content) {
+            const resultsDiv = document.getElementById('results');
+            resultsDiv.innerHTML += content;
+        }
+
+        function clearResults() {
+            document.getElementById('results').innerHTML = '';
+            document.getElementById('status').innerHTML = '';
+        }
+
+        async function testConnection() {
+            clearResults();
+            showStatus('🔍 Testing connection to Portal API...', 'info');
+
+            try {
+                console.log('Fetching from:', API_URL);
+
+                const response = await fetch(API_URL, {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    credentials: 'include'
+                });
+
+                console.log('Response status:', response.status);
+
+                if (!response.ok) {
+                    throw new Error(`API returned ${response.status}: ${response.statusText}`);
+                }
+
+                const data = await response.json();
+                console.log('Data received:', data);
+
+                showStatus('✅ Connection successful! API is responding.', 'success');
+                showResults(`
+                    <div class="service-card">
+                        <div class="service-header">
+                            <div class="service-name">✅ API Connection Test</div>
+                            <span class="badge healthy">SUCCESS</span>
+                        </div>
+                        <div class="metric">
+                            <div class="metric-label">API URL</div>
+                            <div class="metric-value">${API_URL}</div>
+                        </div>
+                        <div class="metric">
+                            <div class="metric-label">Services Found</div>
+                            <div class="metric-value">${data.services?.length || 0}</div>
+                        </div>
+                        <div class="metric">
+                            <div class="metric-label">Errors Logged</div>
+                            <div class="metric-value">${data.errors?.length || 0}</div>
+                        </div>
+                    </div>
+                `);
+
+            } catch (error) {
+                console.error('Connection test failed:', error);
+                showStatus(`❌ Connection failed: ${error.message}`, 'error');
+                showResults(`
+                    <div class="service-card" style="border-left-color: #ef4444;">
+                        <div class="service-header">
+                            <div class="service-name">❌ API Connection Test</div>
+                            <span class="badge down">FAILED</span>
+                        </div>
+                        <div style="margin-top: 10px; color: #ef4444;">
+                            <strong>Error:</strong> ${error.message}
+                        </div>
+                        <div style="margin-top: 15px; padding: 15px; background: #0f172a; border-radius: 8px;">
+                            <strong>Possible causes:</strong><br>
+                            1. Portal not running on port 3001<br>
+                            2. API endpoint not accessible<br>
+                            3. CORS configuration issue<br><br>
+                            <strong>Solution:</strong><br>
+                            Start Portal: <code>cd design-rite-portal-v2 && npm run dev</code>
+                        </div>
+                    </div>
+                `);
+            }
+        }
+
+        async function fetchFullData() {
+            clearResults();
+            showStatus('📊 Fetching full monitoring data...', 'info');
+
+            try {
+                const response = await fetch(API_URL, {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    credentials: 'include'
+                });
+
+                if (!response.ok) {
+                    throw new Error(`API returned ${response.status}`);
+                }
+
+                const data = await response.json();
+
+                showStatus('✅ Full data retrieved successfully!', 'success');
+
+                // Display services
+                if (data.services && data.services.length > 0) {
+                    data.services.forEach(service => {
+                        showResults(`
+                            <div class="service-card">
+                                <div class="service-header">
+                                    <div class="service-name">${service.name}</div>
+                                    <span class="badge ${service.status}">${service.status.toUpperCase()}</span>
+                                </div>
+                                <div class="metric-label" style="margin-bottom: 5px;">${service.url}</div>
+                                <div class="metric">
+                                    <div class="metric-label">Response Time</div>
+                                    <div class="metric-value" style="color: ${
+                                        service.responseTime < 500 ? '#10b981' :
+                                        service.responseTime < 1000 ? '#f59e0b' : '#ef4444'
+                                    }">${service.responseTime}ms</div>
+                                </div>
+                                <div class="metric">
+                                    <div class="metric-label">Uptime</div>
+                                    <div class="metric-value">${service.uptime}%</div>
+                                </div>
+                                <div class="metric">
+                                    <div class="metric-label">Last Checked</div>
+                                    <div class="metric-value" style="font-size: 0.9em;">${new Date(service.lastChecked).toLocaleTimeString()}</div>
+                                </div>
+                            </div>
+                        `);
+                    });
+                }
+
+                // Display raw JSON
+                showResults(`
+                    <h3 style="margin-top: 30px; color: #94a3b8;">Raw API Response:</h3>
+                    <pre>${JSON.stringify(data, null, 2)}</pre>
+                `);
+
+            } catch (error) {
+                showStatus(`❌ Failed to fetch data: ${error.message}`, 'error');
+            }
+        }
+
+        async function testDirectHealthCheck() {
+            clearResults();
+            showStatus('🎯 Testing direct health check (this will likely fail due to CORS)...', 'info');
+
+            try {
+                const testUrl = 'http://localhost:3000/api/health';
+                console.log('Testing direct fetch to:', testUrl);
+
+                const response = await fetch(testUrl, {
+                    method: 'GET',
+                    mode: 'cors'
+                });
+
+                console.log('Direct check response:', response);
+
+                showStatus('✅ Direct check succeeded (surprising!)', 'success');
+                showResults(`
+                    <div class="service-card">
+                        <div class="service-header">
+                            <div class="service-name">✅ Direct Health Check</div>
+                            <span class="badge healthy">SUCCESS</span>
+                        </div>
+                        <div style="margin-top: 10px;">
+                            Direct health check worked! CORS may be configured correctly.
+                        </div>
+                    </div>
+                `);
+
+            } catch (error) {
+                console.error('Direct check failed (expected):', error);
+                showStatus('❌ Direct check failed (this is expected due to CORS)', 'error');
+                showResults(`
+                    <div class="service-card" style="border-left-color: #f59e0b;">
+                        <div class="service-header">
+                            <div class="service-name">⚠️ Direct Health Check</div>
+                            <span class="badge degraded">FAILED (EXPECTED)</span>
+                        </div>
+                        <div style="margin-top: 10px; color: #f59e0b;">
+                            <strong>Error:</strong> ${error.message}
+                        </div>
+                        <div style="margin-top: 15px; padding: 15px; background: #0f172a; border-radius: 8px;">
+                            <strong>Why this fails:</strong><br>
+                            Browser security (CORS) prevents JavaScript on one domain from accessing another domain's resources.
+                            <br><br>
+                            <strong>The solution:</strong><br>
+                            Use the Portal monitoring API, which makes server-side requests that bypass CORS.
+                            <br><br>
+                            <strong>This is why the production monitor was updated!</strong> ✅
+                        </div>
+                    </div>
+                `);
+            }
+        }
+
+        // Auto-test on load
+        window.addEventListener('DOMContentLoaded', () => {
+            console.log('Portal API Test Page loaded');
+            console.log('Portal URL:', PORTAL_URL);
+            console.log('API URL:', API_URL);
+        });
+    </script>
+</body>
+</html>
