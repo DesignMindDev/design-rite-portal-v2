@@ -60,7 +60,7 @@ type CombinedLead = {
 };
 
 export default function UnifiedLeadsPage() {
-  const { user, checkRole } = useAuth();
+  const { user, userRole, isEmployee } = useAuth();
   const [leads, setLeads] = useState<CombinedLead[]>([]);
   const [filteredLeads, setFilteredLeads] = useState<CombinedLead[]>([]);
   const [loading, setLoading] = useState(true);
@@ -83,8 +83,8 @@ export default function UnifiedLeadsPage() {
     lost: 0
   });
 
-  // Check if user is authorized
-  const isAuthorized = checkRole(['super_admin', 'admin', 'manager', 'developer']);
+  // Check if user is authorized (super_admin, admin, manager, or developer)
+  const isAuthorized = isEmployee && userRole && ['super_admin', 'admin', 'manager', 'developer'].includes(userRole.role);
 
   // Fetch leads from both sources
   const fetchLeads = useCallback(async () => {
