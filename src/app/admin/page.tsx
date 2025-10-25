@@ -18,7 +18,8 @@ import {
   Shield,
   AlertCircle,
   UsersRound,
-  Palette
+  Palette,
+  Server
 } from 'lucide-react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
@@ -146,6 +147,22 @@ export default function AdminDashboardPage() {
       status: 'active'
     },
     {
+      title: 'Service Health',
+      description: 'Monitor all Render services status in real-time',
+      icon: Server,
+      href: '/admin/services',
+      color: 'from-red-500 to-red-600',
+      status: 'active'
+    },
+    {
+      title: 'MCP Harvester',
+      description: 'Intelligence engine monitoring',
+      icon: Zap,
+      href: '/admin/mcp-monitor',
+      color: 'from-yellow-500 to-amber-500',
+      status: 'active'
+    },
+    {
       title: 'Operations',
       description: 'System operations and maintenance tools',
       icon: Settings,
@@ -231,7 +248,7 @@ export default function AdminDashboardPage() {
               <div>
                 <p className="text-sm text-green-900 font-medium">Admin Portal 100% Complete!</p>
                 <p className="text-sm text-green-700 mt-1">
-                  All 14 admin sections fully active with real-time data and comprehensive analytics!
+                  All 16 admin sections fully active with real-time data and comprehensive analytics!
                 </p>
               </div>
             </div>
@@ -247,7 +264,7 @@ export default function AdminDashboardPage() {
               </div>
               <div>
                 <p className="text-sm text-gray-500 font-medium">Active Pages</p>
-                <p className="text-2xl font-bold text-gray-900">14 / 14</p>
+                <p className="text-2xl font-bold text-gray-900">16 / 16</p>
               </div>
             </div>
           </div>
@@ -366,12 +383,12 @@ export default function AdminDashboardPage() {
             <div className="flex-1">
               <h3 className="text-2xl font-bold mb-2">🎉 Admin Portal 100% Complete!</h3>
               <p className="text-green-100 mb-4">
-                All 14 admin sections operational with real-time analytics, comprehensive dashboards, and full CRUD functionality!
+                All 16 admin sections operational with real-time analytics, comprehensive dashboards, and full CRUD functionality!
               </p>
               <div className="bg-white/20 rounded-full h-3 overflow-hidden">
                 <div className="bg-white h-full rounded-full transition-all duration-500" style={{ width: '100%' }}></div>
               </div>
-              <p className="text-sm text-green-100 mt-2">14 of 14 pages active (100% complete)</p>
+              <p className="text-sm text-green-100 mt-2">16 of 16 pages active (100% complete)</p>
             </div>
           </div>
         </div>
